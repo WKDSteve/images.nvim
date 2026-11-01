@@ -1,4 +1,5 @@
 ---@module 'images.win_clipboard_worker'
+-- handrolled-ok: a request timeout, not a debounce
 ---@brief A persistent PowerShell `-STA` helper for reading the Windows clipboard.
 ---@description
 --- `:Image paste` on Windows needs a `-STA` PowerShell process with
