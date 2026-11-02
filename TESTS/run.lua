@@ -132,6 +132,7 @@ local specs = {
   "redact_spec.lua",
   "terminal_draw_spec.lua",
   "osc1337_sequence_spec.lua",
+  "pty_osc1337_spec.lua",
   "debug_spec.lua",
   "anchor_spec.lua",
   "testcard_spec.lua",

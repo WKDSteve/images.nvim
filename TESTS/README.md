@@ -99,7 +99,7 @@ Everything else with real branching logic has an assertion-based spec.
 | `scale.lua` | `scale_spec.lua` | Fit/compute arithmetic, and `draw_box` (the box `anchor` draws in: inset, fit, centring) |
 | `scan.lua` | `scan_spec.lua` | Buffer scanning, line-range restriction, found/missing split |
 | `screenshot.lua` | `screenshot_spec.lua` | Availability detection |
-| `terminal.lua` | `terminal_draw_spec.lua`, `capability_spec.lua` | Draw-call shaping and terminal-capability detection |
+| `terminal.lua` | `terminal_draw_spec.lua`, `osc1337_sequence_spec.lua`, `pty_osc1337_spec.lua`, `capability_spec.lua` | Draw-call shaping, the OSC 1337 bytes (also read back from a real tmux terminal via `testing.pty`; n/a without tmux) and terminal-capability detection |
 | `testcard.lua` | `testcard_spec.lua` | Generated PNG correctness |
 | `viewport.lua` | `viewport_spec.lua` | Zoom around a fixed point, the zoom floor and ceiling, pan/drag clamping, the picture box (inset + letterbox) a cell is measured against, cell selection → source rectangle |
 | `.testing.lua` | `testing_config_spec.lua` | Every guard of the runner stays at `"error"` (a loosened guard would let a deprecated API through unnoticed) |

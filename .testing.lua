@@ -10,7 +10,7 @@ return {
   dialect = "h",
   -- Dependencies (directory names) put on the runtimepath: $<NAME>_DIR, .deps/<name>, ../<name>,
   -- stdpath('data')/lazy/<name>.
-  deps = { "lib.nvim" },
+  deps = { "lib.nvim", "testing.nvim" },
   -- "none" = all specs in one nvim, "file" = one nvim per spec file
   -- (nothing leaks from one file into the next). "file" because setup() of the plugin and the
   -- specs leave autocmds, user commands and highlight groups behind (state guard).
@@ -32,6 +32,9 @@ return {
       "tesseract",
       -- ps_path_spec.lua runs one real powershell.exe (skipped where absent) to prove a hostile path stays inside its string.
       "powershell",
+      -- pty_osc1337_spec.lua drives a real Neovim in tmux (WSL on Windows) to read the OSC 1337 bytes back.
+      "wsl",
+      "tmux",
     },
   },
   -- ps_path_spec.lua makes two real powershell.exe round trips and lets each take up to 120 s
