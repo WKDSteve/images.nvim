@@ -345,6 +345,25 @@ local function check_mouse()
   end
 end
 
+---The disk caches: how many files and how much space each holds, and the limits that sweep them.
+---@return nil
+local function check_cache()
+  local cache = require("images.cache")
+  local lim = require("images.config").get().cache or {}
+  local parts = {}
+  for _, name in ipairs(cache.NAMES) do
+    local st = cache.stats()[name]
+    parts[#parts + 1] = ("%s: %d files, %s"):format(name, st.count, cache.format_bytes(st.bytes))
+  end
+  vim.health.info(
+    ("disk caches (%s) — swept once per session: older than %s days, then down to %s MB each"):format(
+      table.concat(parts, "; "),
+      tostring(lim.max_age_days),
+      tostring(lim.max_size_mb)
+    )
+  )
+end
+
 ---@return nil
 function M.check()
   vim.health.start("images.nvim")
@@ -357,6 +376,7 @@ function M.check()
   check_blocks()
   check_ocr()
   check_pdf()
+  check_cache()
   check_config()
   check_calibration()
   check_deps()

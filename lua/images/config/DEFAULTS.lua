@@ -202,6 +202,13 @@ return {
     gopath_fallback = true,
   },
 
+  -- The disk caches (svg, pdf, remote) are swept once per session: files older than `max_age_days`
+  -- go, then the oldest of a cache until it fits `max_size_mb`.
+  cache = {
+    max_age_days = 30,
+    max_size_mb = 200,
+  },
+
   paste = {
     -- An empty string puts the image next to the document. "assets" or "img"
     -- are the usual alternatives; the directory is created when needed (see

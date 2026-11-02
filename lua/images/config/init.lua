@@ -70,6 +70,7 @@ local KNOWN = {
     ascii_fallback = { enabled = true, levels = true, cells = true },
     gopath_fallback = true,
   },
+  cache = { max_age_days = true, max_size_mb = true },
   paste = {
     dir = true,
     confirm_create_dir = true,

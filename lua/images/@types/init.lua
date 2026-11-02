@@ -6,6 +6,7 @@
 ---@field extensions string[] extensions treated as images
 ---@field display ImagesNvim.DisplayConfig
 ---@field paste ImagesNvim.PasteConfig
+---@field cache ImagesNvim.CacheConfig
 ---@field ocr ImagesNvim.OcrConfig
 ---@field keymaps ImagesNvim.KeymapConfig
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
@@ -124,6 +125,7 @@
 ---@field extensions? string[] extensions treated as images
 ---@field display?    ImagesNvim.DisplayOpts
 ---@field paste?      ImagesNvim.PasteOpts
+---@field cache?      ImagesNvim.CacheOpts disk cache housekeeping (svg, pdf, remote)
 ---@field ocr?        ImagesNvim.OcrOpts
 ---@field keymaps?    ImagesNvim.KeymapOpts
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
@@ -251,3 +253,11 @@
 ---@field double_click? boolean double-clicking a markdown link shows the image
 ---@field filetypes?    string[] filetypes the bindings are installed in
 return {}
+
+---@class ImagesNvim.CacheOpts
+---@field max_age_days? number files of a disk cache older than this are deleted (default 30)
+---@field max_size_mb?  number the oldest files of a disk cache go until it fits this (default 200)
+
+---@class ImagesNvim.CacheConfig : ImagesNvim.CacheOpts
+---@field max_age_days number
+---@field max_size_mb number

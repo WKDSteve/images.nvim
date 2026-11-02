@@ -29,6 +29,7 @@ end
 local function cache_dir()
   local dir = vim.fn.stdpath("cache") .. "/images.nvim/remote"
   require("lib.nvim.fs.mkdirp")(dir)
+  require("images.cache").schedule_sweep()
   return dir
 end
 
