@@ -366,17 +366,28 @@ local function create_on_missing_mod()
 end
 
 --- Make sure the target directory exists. Awaited inside `paste_with_name`'s
---- coroutine. A missing directory is offered through `kit.create_on_missing`
---- (Create / Open in filetree / Cancel) unless `paste.confirm_create_dir` is
---- `false`, or the dialog is not available — then it is created silently, as
---- before the question existed.
+--- coroutine. A directory with more than one missing level is offered through
+--- `kit.create_on_missing` (Create / Open in filetree / Cancel) unless
+--- `paste.confirm_create_dir` is `false`, or the dialog is not available — then
+--- it is created silently, as before the question existed. A single missing level
+--- (`assets/` next to the document) is always created silently.
 ---@param dir string
 ---@return boolean ok true: the directory exists now
 ---@return string|nil why on false: "cancelled" | "filetree" | "error" | an error message
 local function ensure_dir(dir)
   if vim.fn.isdirectory(dir) == 1 then return true end
 
-  local com = cfg().paste.confirm_create_dir ~= false and create_on_missing_mod() or nil
+  -- Only a deeper gap is worth a question: one missing level (the usual `assets/` next to the
+  -- document) is created without one. `missing` counts the levels that do not exist yet.
+  local missing, probe = 0, dir
+  while probe ~= "" and vim.fn.isdirectory(probe) == 0 do
+    missing = missing + 1
+    local parent = vim.fn.fnamemodify(probe, ":h")
+    if parent == probe then break end
+    probe = parent
+  end
+
+  local com = missing > 1 and cfg().paste.confirm_create_dir ~= false and create_on_missing_mod() or nil
   if not com then
     local ok = pcall(vim.fn.mkdir, dir, "p")
     if not ok or vim.fn.isdirectory(dir) == 0 then return false, "could not create the directory: " .. dir end

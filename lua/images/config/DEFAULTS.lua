@@ -207,10 +207,11 @@ return {
     -- are the usual alternatives; the directory is created when needed (see
     -- `confirm_create_dir`).
     dir = "assets",
-    -- When the target directory does not exist yet, ask before creating it
-    -- (lib.nvim's `ui.kit.create_on_missing` dialog: Create / Open in
-    -- filetree / Cancel; anything but Create saves nothing and inserts no
-    -- link). `false` creates it silently, as before this option existed.
+    -- When more than one level of the target directory is missing, ask before
+    -- creating it (lib.nvim's `ui.kit.create_on_missing` dialog: Create / Open
+    -- in filetree / Cancel; anything but Create saves nothing and inserts no
+    -- link). A single missing level (`assets/`) is created without a question.
+    -- `false` creates everything silently, as before this option existed.
     confirm_create_dir = true,
     -- If the document's directory already holds a folder with one of these
     -- names (case-insensitive), that one is used instead of `dir` and no

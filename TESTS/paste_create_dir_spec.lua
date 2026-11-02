@@ -56,7 +56,7 @@ return function(H)
     return root
   end
 
-  config.setup({ paste = { link_cursor = { startinsert = false } } })
+  config.setup({ paste = { dir = "docs/img", link_cursor = { startinsert = false } } })
 
   -- ── 1. Create: the directory is made and the paste goes on ───────────────
   do
@@ -67,18 +67,18 @@ return function(H)
 
     paste.paste_with_name(buf, "shot.png", capture)
     vim.wait(2000, function()
-      return vim.fn.filereadable(root .. "/assets/shot.png") == 1
+      return vim.fn.filereadable(root .. "/docs/img/shot.png") == 1
     end)
     hook.set(nil)
 
     H.eq(#asked, 1, "a missing target directory asks once")
     H.eq(asked[1] and asked[1].kind, "confirm", "…through the kit's confirm (create_on_missing)")
     local question = asked[1] and asked[1].opts.question or ""
-    H.ok(question:find("assets/", 1, true) ~= nil, "the question names the directory: " .. question)
+    H.ok(question:find("docs/img/", 1, true) ~= nil, "the question names the directory: " .. question)
     H.eq(asked[1] and asked[1].opts.title, "Create directory?", "…and asks for a directory")
-    H.eq(vim.fn.filereadable(root .. "/assets/shot.png"), 1, "Create: the image lands in the new directory")
+    H.eq(vim.fn.filereadable(root .. "/docs/img/shot.png"), 1, "Create: the image lands in the new directory")
     local line = vim.api.nvim_buf_get_lines(buf, 0, -1, false)[1]
-    H.ok(line:find("assets/shot.png", 1, true) ~= nil, "Create: the link is inserted: " .. line)
+    H.ok(line:find("docs/img/shot.png", 1, true) ~= nil, "Create: the link is inserted: " .. line)
     pcall(vim.api.nvim_buf_delete, buf, { force = true })
   end
 
@@ -98,7 +98,7 @@ return function(H)
     hook.set(nil)
 
     H.eq(#asked, 1, label .. ": the question was asked")
-    H.eq(vim.fn.isdirectory(root .. "/assets"), 0, label .. ": no directory is created")
+    H.eq(vim.fn.isdirectory(root .. "/docs/img"), 0, label .. ": no directory is created")
     H.eq(#vim.fn.readdir(root), 0, label .. ": nothing at all is written next to the document")
     H.eq(table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "|"), "", label .. ": no link is inserted")
     H.eq(vim.fn.filereadable(written() or ""), 0, label .. ": the captured temp file is removed")
@@ -108,7 +108,7 @@ return function(H)
   -- ── 3. An existing directory asks nothing ────────────────────────────────
   do
     local root = fresh_root()
-    vim.fn.mkdir(root .. "/assets", "p")
+    vim.fn.mkdir(root .. "/docs/img", "p")
     local buf = make_buf(root)
     local asked = answer_with("Cancel")
 
@@ -116,13 +116,13 @@ return function(H)
     hook.set(nil)
 
     H.eq(#asked, 0, "an existing target directory asks nothing")
-    H.eq(vim.fn.filereadable(root .. "/assets/shot.png"), 1, "…and the image is written right away")
+    H.eq(vim.fn.filereadable(root .. "/docs/img/shot.png"), 1, "…and the image is written right away")
     pcall(vim.api.nvim_buf_delete, buf, { force = true })
   end
 
-  -- ── 4. confirm_create_dir = false: created silently, as before ───────────
+  -- ── 4. confirm_create_dir = false: created silently even with two missing levels ───────────
   do
-    config.setup({ paste = { confirm_create_dir = false, link_cursor = { startinsert = false } } })
+    config.setup({ paste = { dir = "docs/img", confirm_create_dir = false, link_cursor = { startinsert = false } } })
     local root = fresh_root()
     local buf = make_buf(root)
     local asked = answer_with("Cancel")
@@ -131,7 +131,25 @@ return function(H)
     hook.set(nil)
 
     H.eq(#asked, 0, "confirm_create_dir = false asks nothing")
-    H.eq(vim.fn.filereadable(root .. "/assets/shot.png"), 1, "…and creates the directory itself")
+    H.eq(vim.fn.filereadable(root .. "/docs/img/shot.png"), 1, "…and creates the directory itself")
+    pcall(vim.api.nvim_buf_delete, buf, { force = true })
+  end
+
+  -- ── 5. Only the one level `assets/` is missing: created without a question ──
+  do
+    config.setup({ paste = { link_cursor = { startinsert = false } } }) -- default dir "assets", asking on
+    local root = fresh_root()
+    local buf = make_buf(root)
+    local asked = answer_with("Cancel")
+
+    paste.paste_with_name(buf, "shot.png", (fake_capture()))
+    vim.wait(2000, function()
+      return vim.fn.filereadable(root .. "/assets/shot.png") == 1
+    end)
+    hook.set(nil)
+
+    H.eq(#asked, 0, "one missing level asks nothing")
+    H.eq(vim.fn.filereadable(root .. "/assets/shot.png"), 1, "…and assets/ is created with the image in it")
     pcall(vim.api.nvim_buf_delete, buf, { force = true })
   end
 
