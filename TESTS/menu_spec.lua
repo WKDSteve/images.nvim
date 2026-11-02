@@ -66,6 +66,50 @@ return function(H)
     H.ok(type(item.name) == "string" and #item.name > 0, ("item %d has a non-empty name"):format(i))
   end
 
+  -- ── processing actions are part of the list, gated on their tool ─────────
+  local function names(list)
+    local out = {}
+    for _, item in ipairs(list) do out[item.name or ""] = true end
+    return out
+  end
+  local have_names = names(items)
+  H.ok(have_names["Export as PDF"] and have_names["Zen view"], "tool-free actions are always listed")
+  local exe = require("lib.nvim.cross.executable")
+  local real_exists = exe.exists
+  exe.exists = function() return false end
+  local bare = names(menu.items(buf))
+  exe.exists = real_exists
+  H.ok(bare["Export as PDF"] and bare["Zen view"], "tool-free actions stay without any tool")
+  H.ok(not bare["Read text (OCR)"] and not bare["Redact (black out areas)"], "OCR and redact need their tool")
+  H.ok(not bare["Optimise copy"] and not bare["Scale copy…"] and not bare["Convert copy…"], "magick actions need magick")
+  exe.exists = function() return true end
+  local full = names(menu.items(buf))
+  exe.exists = real_exists
+  H.ok(full["Read text (OCR)"] and full["Optimise copy"], "with the tools every action is listed")
+
+  -- ── items_for_path: no filetype gate, every action acts on the path ──────
+  vim.bo[buf].filetype = "lua"
+  H.eq(#menu.items_for_path(""), 0, "an empty path gives no entries")
+  H.eq(#menu.items_for_path(nil), 0, "no path gives no entries")
+  local path_items = menu.items_for_path("/tmp/pic.png")
+  H.ok(#path_items > 0, "a path gives entries even in a lua buffer")
+  local images = require("images")
+  local seen = {}
+  local real_info, real_zen = images.info, images.zen
+  images.info = function(p) seen.info = p end
+  images.zen = function(p) seen.zen = p end
+  for _, item in ipairs(path_items) do
+    if item.name == "Show image info" then item.cmd() end
+    if item.name == "Zen view" then item.cmd() end
+  end
+  images.info, images.zen = real_info, real_zen
+  H.eq(seen.info, "/tmp/pic.png", "info acts on the given path")
+  H.eq(seen.zen, "/tmp/pic.png", "zen acts on the given path")
+  require("images.config").setup({ menu = { enable = false } })
+  H.eq(#menu.items_for_path("/tmp/pic.png"), 0, "menu.enable = false: no entries for a path either")
+  require("images.config").setup({})
+  vim.bo[buf].filetype = "markdown"
+
   -- ── menu.enable = false: no entries, regardless of filetype ──────────────
   require("images.config").setup({ menu = { enable = false } })
   H.eq(#menu.items(buf), 0, "menu.enable = false returns no entries")

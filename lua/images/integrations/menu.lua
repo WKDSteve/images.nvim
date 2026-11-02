@@ -1,22 +1,72 @@
 ---@module 'images.integrations.menu'
----@brief Context menu entries for nvzone/menu (a soft, opt-in integration).
+---@brief Context menu entries for a host's right-click menu (`ui.contextmenu` item shape; a soft, opt-in integration).
 ---@description
 --- images.nvim has no dependency on a menu plugin. It *supplies* a list of
---- entries in the shape nvzone/menu expects, built with the helpers from
---- `ui.contextmenu`, and a host — typically the user's own RightMouse
+--- entries built with the helpers from `ui.contextmenu` (ui.nvim's menu), and a host — typically the user's own RightMouse
 --- dispatcher — composes them into its own menu, e.g.:
 --- >
 ---   local items = require("images.integrations.menu").items()
 ---   -- append/prepend `items` to your own menu, then menu.open(composed)
 --- <
---- Bound to `keymaps.filetypes` (default markdown/vimwiki/norg/text) — the
+--- `items(bufnr)` is bound to `keymaps.filetypes` (default markdown/vimwiki/norg/text) — the
 --- same condition under which the buffer-local keys from
 --- `images.bindings.keymaps` are registered at all. No pre-check for "is the
 --- cursor really on an image": the underlying functions (hover/info/…) report
 --- that themselves via notify, exactly as the double-click handler already
---- does. Opt out via `config.menu.enable`.
+--- does. `items_for_path(path)` is the variant for hosts that already know the file
+--- (a tree node, an image buffer): no filetype gate, every action acts on `path`.
+--- Entries that need a tool (tesseract, magick) are left out when it is missing.
+--- Opt out via `config.menu.enable`.
 
 local contextmenu = require("ui.contextmenu")
+
+---@internal
+---@param bin string
+---@return boolean
+local function have(bin)
+  return require("lib.nvim.cross.executable").exists(bin)
+end
+
+---@internal
+--- The processing actions (OCR, redact, export, scale, optimise, convert, zen, replace, compare),
+--- each acting on `path` (nil: the image under the cursor) and gated on what it needs.
+---@param path? string
+---@return Ui.ContextMenu.Item|nil ...
+local function processing_entries(path)
+  local images = require("images")
+  local magick = have("magick")
+  return contextmenu.entry(have("tesseract"), "Read text (OCR)", function()
+    images.ocr(path)
+  end),
+    contextmenu.entry(magick, "Redact (black out areas)", function()
+      images.redact(path)
+    end),
+    contextmenu.entry(true, "Export as PDF", function()
+      images.export(path)
+    end),
+    contextmenu.entry(magick, "Scale copy…", function()
+      vim.ui.input({ prompt = "Scale to (50%, 800x600, 800): " }, function(spec)
+        if spec and spec ~= "" then images.scale(spec, path) end
+      end)
+    end),
+    contextmenu.entry(magick, "Optimise copy", function()
+      images.optimise(path)
+    end),
+    contextmenu.entry(magick, "Convert copy…", function()
+      vim.ui.select(require("images.convert").target_formats(), { prompt = "Convert to:" }, function(format)
+        if format then images.convert(format, path) end
+      end)
+    end),
+    contextmenu.entry(true, "Zen view", function()
+      images.zen(path)
+    end),
+    contextmenu.entry(true, "Replace with clipboard image", function()
+      images.replace(path)
+    end),
+    contextmenu.entry(true, "Compare two images…", function()
+      images.compare()
+    end)
+end
 
 local M = {}
 
@@ -90,6 +140,32 @@ function M.items(bufnr)
     end)
   )
 
+  contextmenu.group(out, processing_entries(nil))
+
+  return out
+end
+
+--- The entries for a host that already knows the file (a filetree node, an image buffer, open.nvim):
+--- every action acts on `path`, and there is no filetype gate. Empty when the integration is
+--- disabled or `path` is not a non-empty string.
+---@param path string
+---@return Ui.ContextMenu.Item[]
+function M.items_for_path(path)
+  if type(path) ~= "string" or path == "" then return {} end
+  if ((require("images.config").get().menu or {}).enable) == false then return {} end
+
+  local images = require("images")
+  local out = {}
+  contextmenu.group(
+    out,
+    contextmenu.entry(true, "Show image", function()
+      images.show(path)
+    end),
+    contextmenu.entry(true, "Show image info", function()
+      images.info(path)
+    end)
+  )
+  contextmenu.group(out, processing_entries(path))
   return out
 end
 

@@ -351,10 +351,9 @@ return {
     dpi = 120,
   },
 
-  -- Right-click context menu (nvzone/menu, soft dependency; entries from
-  -- images.integrations.menu). Automatically inactive without nvzone/menu
-  -- installed -- this only controls whether M.items()/M.submenu() return any
-  -- entries at all.
+  -- Right-click context menu (ui.nvim's `ui.contextmenu`, soft dependency; entries from
+  -- images.integrations.menu). This only controls whether M.items()/M.items_for_path()/
+  -- M.submenu() return any entries at all.
   menu = {
     enable = true,
   },

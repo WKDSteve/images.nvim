@@ -10,12 +10,12 @@
 ---@field ocr ImagesNvim.OcrConfig
 ---@field keymaps ImagesNvim.KeymapConfig
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
----@field menu? ImagesNvim.MenuConfig enable/disable `images.integrations.menu` (its nvzone/menu context-menu contribution)
+---@field menu? ImagesNvim.MenuConfig enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)
 ---@field integrations? ImagesNvim.IntegrationsConfig which hosts may drive this plugin (`ui_menu`)
 ---@field pdf? ImagesNvim.PdfConfig PDF pages drawn as pictures, via pdfport.nvim (see images.pdf)
 
----Off switch for `images.integrations.menu`. images.nvim has no nvzone/menu
----dependency of its own; this only controls whether M.items()/M.submenu()
+---Off switch for `images.integrations.menu`. images.nvim has no menu
+---dependency of its own; this only controls whether M.items()/M.items_for_path()/M.submenu()
 ---return any entries.
 ---@class ImagesNvim.MenuConfig : ImagesNvim.MenuOpts
 ---@field enable? boolean default true
@@ -129,7 +129,7 @@
 ---@field ocr?        ImagesNvim.OcrOpts
 ---@field keymaps?    ImagesNvim.KeymapOpts
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
----@field menu?       ImagesNvim.MenuOpts enable/disable `images.integrations.menu` (its nvzone/menu context-menu contribution)
+---@field menu?       ImagesNvim.MenuOpts enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)
 ---@field integrations? ImagesNvim.IntegrationsOpts which hosts may drive this plugin (`ui_menu`)
 ---@field pdf?        ImagesNvim.PdfOpts PDF pages drawn as pictures, via pdfport.nvim (see images.pdf)
 
