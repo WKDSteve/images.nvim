@@ -101,7 +101,10 @@ return function(H)
   H.ok(#path_items > 0, "a path gives entries even in a lua buffer")
   local images = require("images")
   local seen = {}
-  local real_info, real_zen = images.info, images.zen
+  local real_info, real_zen, real_compare = images.info, images.zen, images.compare
+  images.compare = function(scope, dir)
+    seen.compare = { scope, dir }
+  end
   images.info = function(p)
     seen.info = p
   end
@@ -111,8 +114,11 @@ return function(H)
   for _, item in ipairs(path_items) do
     if item.name == "Show image info" then item.cmd() end
     if item.name == "Zen view" then item.cmd() end
+    if item.name == "Compare two images…" then item.cmd() end
   end
-  images.info, images.zen = real_info, real_zen
+  images.info, images.zen, images.compare = real_info, real_zen, real_compare
+  H.eq(seen.compare and seen.compare[1], "path", "compare is scoped to a path")
+  H.eq(seen.compare and seen.compare[2], "/tmp", "…the folder of the given path")
   H.eq(seen.info, "/tmp/pic.png", "info acts on the given path")
   H.eq(seen.zen, "/tmp/pic.png", "zen acts on the given path")
   require("images.config").setup({ menu = { enable = false } })

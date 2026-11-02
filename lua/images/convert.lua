@@ -90,7 +90,10 @@ function M.to_png(path)
   local key = vim.fn.sha256(path .. ":" .. tostring(stat.mtime and stat.mtime.sec or 0))
   local out = cache_dir() .. "/" .. key .. ".png"
 
-  if vim.uv.fs_stat(out) then return out end
+  if vim.uv.fs_stat(out) then
+    require("images.cache").touch(out)
+    return out
+  end
 
   -- -background none: a transparent background rather than a guessed
   -- white/black that would look wrong on a coloured terminal background.

@@ -159,6 +159,7 @@ function M.page_png(path, opts, callback)
     return
   end
   if vim.uv.fs_stat(out) then
+    require("images.cache").touch(out)
     callback(out, nil)
     return
   end

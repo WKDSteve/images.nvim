@@ -70,6 +70,14 @@ return function(H)
     H.ok(st.pdf.bytes >= 2 * mb, "…and their bytes")
     H.eq(cache.stats().svg.count, 2, "svg: new.png and keep.png")
 
+    -- a used entry is not old: touch() restarts its age
+    local used = put("svg", "used.png", 40)
+    local unused = put("svg", "unused.png", 40)
+    cache.touch(used)
+    cache.sweep({ max_age_days = 30, max_size_mb = 200 })
+    H.ok(exists(used), "a touched file survives the age limit")
+    H.ok(not exists(unused), "an untouched one of the same age goes")
+
     -- an absent cache directory is not an error
     vim.fn.delete(cache.root() .. "/remote", "rf")
     H.eq(cache.stats().remote.count, 0, "a missing cache directory counts as empty")

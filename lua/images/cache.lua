@@ -73,6 +73,15 @@ function M.stats()
   return out
 end
 
+---A cache hit counts as a use: bump the file's mtime so the sweep ages from the last use, not from
+---creation. Not for `remote`: its mtime is the freshness of the download (the TTL), not a use.
+---@param path string
+---@return nil
+function M.touch(path)
+  local now = os.time()
+  pcall(vim.uv.fs_utime, path, now, now)
+end
+
 ---Delete the files of every cache that are too old, then the oldest ones until each cache fits.
 ---@param opts? { now?: integer, max_age_days?: number, max_size_mb?: number }
 ---@return { removed: integer, freed: integer }

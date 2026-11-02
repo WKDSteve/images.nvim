@@ -64,7 +64,12 @@ local function processing_entries(path)
       images.replace(path)
     end),
     contextmenu.entry(true, "Compare two images…", function()
-      images.compare()
+      -- Searched in the folder of the clicked image, not the working directory.
+      if path then
+        images.compare("path", vim.fs.dirname(path))
+      else
+        images.compare()
+      end
     end)
 end
 
