@@ -64,6 +64,12 @@ jobs:
           path: .deps/testing.nvim
           ref: ci-verified
 
+      # TESTS/pty_osc1337_spec.lua reads the OSC 1337 bytes back from a real terminal (tmux);
+      # without tmux it reports n/a instead of running.
+      - name: Install tmux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y tmux
+
       # gopath.nvim is deliberately NOT checked out either (as before the migration): with it on the
       # runtimepath paste_target_spec.lua's "without gopath" block (package.loaded[...] = false does
       # not make `require` fail on LuaJIT) runs gopath's case-insensitive shortener on Linux/macOS.
