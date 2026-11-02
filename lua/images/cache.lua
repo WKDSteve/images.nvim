@@ -46,14 +46,10 @@ function M.files(name)
   local dir = M.root() .. "/" .. name
   local out = {}
   local handle = vim.uv.fs_scandir(dir)
-  if not handle then
-    return out
-  end
+  if not handle then return out end
   while true do
     local entry, kind = vim.uv.fs_scandir_next(handle)
-    if not entry then
-      break
-    end
+    if not entry then break end
     local path = dir .. "/" .. entry
     local stat = (kind == "file" or kind == nil) and vim.uv.fs_stat(path) or nil
     if stat and stat.type == "file" then
@@ -113,12 +109,8 @@ function M.sweep(opts)
         return a.mtime < b.mtime
       end)
       for _, f in ipairs(keep) do
-        if total <= max_bytes then
-          break
-        end
-        if not f.path:match("%.part$") and drop(f) then
-          total = total - f.size
-        end
+        if total <= max_bytes then break end
+        if not f.path:match("%.part$") and drop(f) then total = total - f.size end
       end
     end
   end
@@ -127,9 +119,7 @@ end
 
 ---Sweep once per session, a few seconds after the first cache directory is used.
 function M.schedule_sweep()
-  if scheduled then
-    return
-  end
+  if scheduled then return end
   scheduled = true
   vim.defer_fn(function()
     pcall(M.sweep)
@@ -139,9 +129,7 @@ end
 ---@param bytes integer
 ---@return string
 function M.format_bytes(bytes)
-  if bytes >= 1024 * 1024 then
-    return ("%.1f MB"):format(bytes / 1024 / 1024)
-  end
+  if bytes >= 1024 * 1024 then return ("%.1f MB"):format(bytes / 1024 / 1024) end
   return ("%.1f KB"):format(bytes / 1024)
 end
 

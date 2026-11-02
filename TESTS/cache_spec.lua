@@ -32,7 +32,9 @@ return function(H)
     return path
   end
 
-  local function exists(path) return vim.uv.fs_stat(path) ~= nil end
+  local function exists(path)
+    return vim.uv.fs_stat(path) ~= nil
+  end
 
   local ok, err = pcall(function()
     -- age: only the old file of each cache goes

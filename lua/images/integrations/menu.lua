@@ -152,7 +152,7 @@ end
 ---@return Ui.ContextMenu.Item[]
 function M.items_for_path(path)
   if type(path) ~= "string" or path == "" then return {} end
-  if ((require("images.config").get().menu or {}).enable) == false then return {} end
+  if (require("images.config").get().menu or {}).enable == false then return {} end
 
   local images = require("images")
   local out = {}
