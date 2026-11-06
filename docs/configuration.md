@@ -23,6 +23,7 @@ its default the same way. Both are also kept for `:checkhealth images` — see
 - [paste](#paste)
 - [ocr](#ocr)
 - [pdf](#pdf)
+- [cache](#cache)
 - [menu](#menu)
 - [integrations](#integrations)
 - [keymaps](#keymaps)
@@ -35,6 +36,7 @@ require("images").setup({
   command = "Image",
   extensions = { "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg" },
   deps_popup = true,
+  cache = { max_age_days = 30, max_size_mb = 200 },
   display = {
     max_cols = 60,
     max_rows = 25,
@@ -362,6 +364,13 @@ its own preview.
 
 Pages are cached under `stdpath("cache")/images.nvim/pdf`, keyed by path,
 mtime, page and dpi.
+
+## cache
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `max_age_days` | `30` | The disk caches (`svg`, `pdf`, `remote` under `stdpath("cache")/images.nvim`) are swept once per session: files older than this many days go |
+| `max_size_mb` | `200` | After that, the oldest files of a cache go until it fits this many megabytes |
 
 ## menu
 
