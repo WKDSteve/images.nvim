@@ -35,6 +35,8 @@ return {
       -- pty_osc1337_spec.lua drives a real Neovim in tmux (WSL on Windows) to read the OSC 1337 bytes back.
       "wsl",
       "tmux",
+      -- testing.pty reads the bytes the terminal got back through `cat` on Linux and macOS.
+      "cat",
     },
   },
   -- ps_path_spec.lua makes two real powershell.exe round trips and lets each take up to 120 s
