@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- **Neovim 0.10+** — `vim.base64` and API level 14 (`nvim_ui_send`) are both
+- **Neovim 0.11+** — `vim.base64` and API level 14 (`nvim_ui_send`) are both
   used unconditionally.
 - **A terminal that speaks OSC 1337.** WezTerm is the reference; iTerm2 and
   Konsole work too. Terminals without it fall back to coloured block graphics
