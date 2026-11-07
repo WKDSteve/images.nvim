@@ -351,6 +351,9 @@ local function set_keymaps(buf)
   end, "cancel")
 end
 
+---@internal exposed for the specs: the final "Apply this calibration?" question
+M.offer_save = offer_save
+
 --- Start calibration.
 ---@return boolean started
 function M.run()

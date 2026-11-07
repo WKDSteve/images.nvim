@@ -123,6 +123,7 @@ local specs = {
   "sanitize_filename_spec.lua",
   "paste_target_spec.lua",
   "paste_create_dir_spec.lua",
+  "dialogs_async_spec.lua",
   "cache_spec.lua",
   "win_clipboard_worker_spec.lua",
   "convert_spec.lua",
