@@ -234,6 +234,15 @@ Export as PDF next to the source. Routes through
 when that plugin is installed — asynchronous, lossless via `img2pdf` if
 available. Without it, the ImageMagick-only path, also asynchronous.
 
+### `:'<,'>Image export [--out=<pdf>]`
+
+With a range, every local image linked in those lines becomes **one multi-page
+PDF**, the pages in the order of the links. The target is `--out`, or
+`<first stem>-<N>pages.pdf` next to the first image; an existing file is
+overwritten, like the single export. Same routes as above (`pdfport.create` with
+the whole list, else `magick a.png b.png out.pdf`). Links that do not resolve are
+reported and skipped; remote URLs are not exported (download them first).
+
 ### `:Image ocr [path] [--lang=<code>] [--upscale[=N]]`
 
 Run the image through `tesseract` and open the recognised text in a `markdown`

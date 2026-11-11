@@ -419,6 +419,33 @@ function M.export(path)
   return true
 end
 
+--- The images of a line range as one multi-page PDF, pages in the order of the links in the buffer. A link that is
+--- not a readable image is skipped with a warning; remote URLs are not exported (download them first).
+---@param first integer 1-based first line
+---@param last integer 1-based last line
+---@param out string|nil target PDF; nil = next to the first image
+---@return boolean ok  true = the export was started
+function M.export_range(first, last, out)
+  local found, missing = require("images.scan").buffer(0, first, last)
+  if #missing > 0 then notify().warn(("%d image link(s) unresolvable, e.g. %s"):format(#missing, missing[1])) end
+  local paths = {}
+  for _, t in ipairs(found) do
+    if type(t.path) == "string" and not t.path:match("^https?://") then paths[#paths + 1] = t.path end
+  end
+  if #paths == 0 then
+    notify().info("no local images in this range")
+    return false
+  end
+  local err = require("images.convert").to_pdf_multi(paths, out and vim.fn.expand(out) or nil, function(ok, result)
+    if ok then
+      notify().info(("exported %d image(s): %s"):format(#paths, vim.fn.fnamemodify(result, ":~")))
+    else
+      notify().error(result or "export failed")
+    end
+  end)
+  return err == nil
+end
+
 --- Write a resized copy of an image next to the source
 --- ("photo.png" -> "photo.scaled.png"); the original stays untouched.
 ---

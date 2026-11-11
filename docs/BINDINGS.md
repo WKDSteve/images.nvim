@@ -20,6 +20,7 @@ completion and this table all come from the same spec.
 | `:Image screenshot` | — | Take a screenshot interactively and insert the link — skips the clipboard step |
 | `:Image replace [path]` | — | Overwrite an image with the clipboard, keep the link |
 | `:Image export [path]` | — | Export an image as PDF next to the source file (via `pdfport.nvim` if installed, else needs ImageMagick) |
+| `:'<,'>Image export [--out=<pdf>]` | — | All local images in the range as one multi-page PDF, pages in link order |
 | `:Image redact [path]` | — | Censor mode in a zen window: mark boxes (left-button drag, or `v` + hjkl + `<CR>`), `u` removes the last, `w` blacks them out into a new file (needs ImageMagick) |
 | `:Image ocr [path] [--lang=<code>] [--upscale[=N]]` | — | Read the text out of an image into a markdown scratch split (needs `tesseract`); `--lang`/`-l` overrides `ocr.lang`, `--upscale[=N]` enlarges first (`ocr.upscale` for one call) |
 | `:Image scale <size> [path]` | — | Resized copy next to the source (`photo.png` → `photo.scaled.png`); `size` is `50%`, `800x600`, `800x`, `x600` or `800x600!` (needs ImageMagick) |

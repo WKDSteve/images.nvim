@@ -150,6 +150,65 @@ function M.shrink(path, px)
   return out
 end
 
+--- Several images into ONE multi-page PDF, in the order given. The target is `out`, or `<first stem>-<N>pages.pdf` next
+--- to the first image; an existing file is overwritten, like the single-image export. Through pdfport.nvim when it
+--- can create from images (it takes the list as it is), otherwise `magick a.png b.png out.pdf`. Asynchronous on both
+--- paths: `on_done` is the only way to the result.
+---@param paths string[] image files, in page order (at least one)
+---@param out string|nil target PDF
+---@param on_done fun(ok: boolean, out_path_or_err: string)|nil
+---@return string|nil err  set only when it fails before starting
+function M.to_pdf_multi(paths, out, on_done)
+  local function fail(err)
+    if on_done then on_done(false, err) end
+    return err
+  end
+  if type(paths) ~= "table" or #paths == 0 then return fail("no images to export") end
+  for _, p in ipairs(paths) do
+    if not vim.uv.fs_stat(p) then return fail("file not found: " .. p) end
+  end
+  out = out or (vim.fn.fnamemodify(paths[1], ":r") .. ("-%dpages.pdf"):format(#paths))
+
+  local ok_pp, pdfport = pcall(require, "pdfport")
+  if ok_pp and type(pdfport.can_create) == "function" and pdfport.can_create("image") then
+    pdfport.create({
+      inputs = paths,
+      from = "image",
+      output = out,
+      on_conflict = "overwrite",
+      __callback = function(result)
+        if not on_done then return end
+        if result.status == "ok" then
+          on_done(true, result.path or out)
+        else
+          on_done(false, result.error or "export failed (pdfport)")
+        end
+      end,
+    })
+    return nil
+  end
+
+  if not require("lib.nvim.cross.executable").exists("magick") then
+    return fail("PDF export requires ImageMagick (`magick` not found)")
+  end
+  local argv = { "magick" }
+  vim.list_extend(argv, paths)
+  argv[#argv + 1] = out
+  require("images.proc").async(argv, { text = true }, function(result)
+    vim.schedule(function()
+      if not on_done then return end
+      if result.code ~= 0 then
+        on_done(false, "export failed: " .. vim.trim(result.stderr or ""))
+      elseif not vim.uv.fs_stat(out) then
+        on_done(false, "export produced no file")
+      else
+        on_done(true, out)
+      end
+    end)
+  end)
+  return nil
+end
+
 --- Export an image as a PDF next to the source file, on the same stem
 --- ("image.png" -> "image.pdf"). An existing target file is overwritten — the
 --- same stance as `:Image paste`/`replace`, which also write target files

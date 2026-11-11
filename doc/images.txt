@@ -193,6 +193,12 @@ Calling |images.setup()| is optional when using `opts`.
                         lossless via `img2pdf` when available. Without it,
                         ImageMagick is required (see |images-magick|).
 
+:'<,'>Image export [--out={pdf}]
+                        With a range: every local image linked in those
+                        lines as ONE multi-page PDF, pages in link order.
+                        Target {pdf}, or `<first stem>-<N>pages.pdf` next to
+                        the first image.
+
 :Image redact [{path}]  Open {path} — or the image under the cursor — in a
                         censor mode in a zen window (|:Image| zen): drag
                         with the left button over what needs blacking out,

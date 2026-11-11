@@ -121,6 +121,34 @@ return function(H)
   H.contains(pdf_path or "", ".pdf", "…with a .pdf extension")
   H.eq(vim.fn.fnamemodify(pdf_path or "", ":r"), vim.fn.fnamemodify(png or "", ":r"), "…same stem as the source file")
 
+  -- ── to_pdf_multi: several images, one PDF ───────────────────────────────
+  H.contains(convert.to_pdf_multi({}, nil, nil) or "", "no images", "to_pdf_multi: an empty list is refused")
+  H.contains(
+    convert.to_pdf_multi({ png, "/definitely/does/not/exist.png" }, nil, nil) or "",
+    "not found",
+    "to_pdf_multi: a missing file is named before anything starts"
+  )
+  local second = vim.fn.fnamemodify(png or "", ":r") .. "-second.png"
+  vim.fn.writefile(vim.fn.readfile(assert(png), "b"), second, "b")
+  local target = vim.fn.fnamemodify(png or "", ":r") .. "-both.pdf"
+  local multi_ok, multi_path
+  multi_ok, multi_path, fired = await(function(cb)
+    convert.to_pdf_multi({ assert(png), second }, target, cb)
+  end)
+  H.ok(fired, "to_pdf_multi calls back")
+  H.ok(multi_ok, "to_pdf_multi succeeds: " .. tostring(multi_path))
+  H.ok(multi_path ~= nil and vim.uv.fs_stat(multi_path) ~= nil, "...and the file exists")
+  H.eq(vim.fn.fnamemodify(multi_path or "", ":t"), vim.fn.fnamemodify(target, ":t"), "...at the requested target")
+  local default_ok, default_path
+  default_ok, default_path = await(function(cb)
+    convert.to_pdf_multi({ assert(png), second }, nil, cb)
+  end)
+  H.ok(default_ok, "to_pdf_multi without a target succeeds: " .. tostring(default_path))
+  H.contains(default_path or "", "-2pages.pdf", "...and names the file after the first image and the page count")
+  pcall(os.remove, second)
+  pcall(os.remove, target)
+  pcall(os.remove, default_path)
+
   -- ── redact: missing file ─────────────────────────────────────────────────
   -- `redact` returns nothing at all, on any path, so every case goes through
   -- the callback.

@@ -234,8 +234,15 @@ function M.register(cfg)
       {
         path = { "export" },
         args = { { name = "path", type = "FILE", optional = true } },
-        desc = "Export an image as a PDF, next to the source file",
+        flags = {
+          { name = "out", type = "STRING", desc = "Target PDF for a ranged export (default: next to the first image)" },
+        },
+        desc = "Export an image as a PDF next to the source file; with a range (:'<,'>Image export [--out=<pdf>]) all images of the range become one multi-page PDF",
         run = function(ctx)
+          if has_range(ctx) then
+            require("images").export_range(ctx.range.line1, ctx.range.line2, ctx.flags.out)
+            return
+          end
           require("images").export(ctx.args.path)
         end,
       },

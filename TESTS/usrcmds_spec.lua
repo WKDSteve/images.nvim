@@ -42,6 +42,8 @@ return function(H)
     clear = record("clear"),
     ocr = record("ocr"),
     selftest = record("selftest"),
+    export = record("export"),
+    export_range = record("export_range"),
   }
 
   local buf = vim.api.nvim_create_buf(false, true)
@@ -137,6 +139,15 @@ return function(H)
   H.eq(run("ImageTest clear")[1], "clear", "clear dispatches correctly")
 
   H.eq(run("ImageTest selftest")[1], "selftest", "selftest dispatches correctly")
+
+  -- ── export: a range makes one multi-page PDF, no range exports the single image ──
+  call = run("2,4ImageTest export --out=pages.pdf")
+  H.eq(call[1], "export_range", "a ranged export goes to the multi-page route")
+  H.eq(call[2], 2, "...first line")
+  H.eq(call[3], 4, "...last line")
+  H.eq(call[4], "pages.pdf", "...and --out arrives")
+  H.eq(run("2,4ImageTest export")[4], nil, "...no --out: the default target")
+  H.eq(run("ImageTest export")[1], "export", "without a range the single export runs")
 
   -- ── ocr --upscale[=N]: bare = true (2x), =N = the factor, absent = nil (config decides) ──
   local png = vim.fs.normalize(vim.fn.tempname() .. ".png")
