@@ -290,7 +290,9 @@ function M.run(path, opts, on_done)
       args[#args + 1] = extra
     end
 
-    require("images.proc").async(args, { text = true }, function(result)
+    -- tesseract on a large scan legitimately takes longer than the shared default.
+    local proc = require("images.proc")
+    proc.async(args, { text = true, timeout = math.max(proc.timeout_ms(), 120000) }, function(result)
       -- vim.system callbacks run outside the main loop; every caller's
       -- `on_done` ends up in a buffer, notify or vim.fn.
       vim.schedule(function()

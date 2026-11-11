@@ -20,14 +20,14 @@ local function cfg()
     return require("images.config").get().process
   end)
   if ok and type(conf) == "table" then return conf end
-  return { timeout_ms = 20000, magick_memory = "512MiB", magick_time_s = 60 }
+  return { timeout_ms = 60000, magick_memory = "512MiB", magick_time_s = 60 }
 end
 
 --- The timeout for one external call, in ms.
 ---@return integer
 function M.timeout_ms()
   local v = cfg().timeout_ms
-  if type(v) ~= "number" or v <= 0 then return 20000 end
+  if type(v) ~= "number" or v <= 0 then return 60000 end
   return v
 end
 
