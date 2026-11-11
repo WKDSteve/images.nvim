@@ -129,7 +129,7 @@ function M.languages()
   local bin = M.bin()
   if not bin then return {} end
 
-  local result = vim.system({ bin, "--list-langs" }, { text = true }):wait()
+  local result = require("images.proc").sync({ bin, "--list-langs" }, { text = true })
   if result.code ~= 0 then return {} end
 
   local langs = {}
@@ -201,7 +201,7 @@ local function upscale(input, factor, on_ready)
   -- `out-0.png`, `out-1.png`, ... with exit 0 and no `out` at all (the trap
   -- convert.discard_temp exists for); tesseract reads only the first frame
   -- of such a file anyway.
-  vim.system({ "magick", input .. "[0]", "-resize", percent, out }, { text = true }, function(result)
+  require("images.proc").async({ "magick", input .. "[0]", "-resize", percent, out }, { text = true }, function(result)
     vim.schedule(function()
       if result.code ~= 0 or not vim.uv.fs_stat(out) then
         cleanup()
@@ -290,7 +290,7 @@ function M.run(path, opts, on_done)
       args[#args + 1] = extra
     end
 
-    vim.system(args, { text = true }, function(result)
+    require("images.proc").async(args, { text = true }, function(result)
       -- vim.system callbacks run outside the main loop; every caller's
       -- `on_done` ends up in a buffer, notify or vim.fn.
       vim.schedule(function()

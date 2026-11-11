@@ -81,7 +81,7 @@ function M.collect(path)
     -- `identify` as a subcommand of `magick`, not as its own binary: on
     -- Windows `convert.exe`/`identify.exe` collide with the system programs of
     -- the same name in System32.
-    local res = vim.system({ "magick", "identify", "-format", "%m %w %h", path .. "[0]" }, { text = true }):wait()
+    local res = require("images.proc").sync({ "magick", "identify", "-format", "%m %w %h", path .. "[0]" }, { text = true })
     if res.code == 0 and res.stdout then
       local fmt, w, h = res.stdout:match("^(%S+)%s+(%d+)%s+(%d+)")
       info.format = fmt

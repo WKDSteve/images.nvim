@@ -209,6 +209,14 @@ return {
     max_size_mb = 200,
   },
 
+  -- External programs (magick, tesseract): how long a call may take before it is killed, and the resource limits
+  -- every `magick` run gets (`-limit memory`/`map`/`time`). `false` leaves that limit off. See images.proc.
+  process = {
+    timeout_ms = 20000,
+    magick_memory = "512MiB",
+    magick_time_s = 60,
+  },
+
   paste = {
     -- An empty string puts the image next to the document. "assets" or "img"
     -- are the usual alternatives; the directory is created when needed (see

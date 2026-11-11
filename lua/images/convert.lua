@@ -97,7 +97,11 @@ function M.to_png(path)
 
   -- -background none: a transparent background rather than a guessed
   -- white/black that would look wrong on a coloured terminal background.
-  local result = vim.system({ "magick", path, "-background", "none", out }, { text = true }):wait()
+  local result, timed_out = require("images.proc").sync({ "magick", path, "-background", "none", out }, { text = true })
+  if timed_out then
+    pcall(vim.uv.fs_unlink, out)
+    return nil, "conversion timed out (process.timeout_ms)"
+  end
   if result.code ~= 0 then
     pcall(vim.uv.fs_unlink, out)
     return nil, "conversion failed: " .. vim.trim(result.stderr or "")
@@ -159,7 +163,7 @@ function M.to_pdf(path, on_done)
   -- asynchronous, exactly like the pdfport branch above: `on_done` is the route
   -- to the result in *both* paths, which is what this function's docs already
   -- describe anyway.
-  vim.system({ "magick", path, out }, { text = true }, function(result)
+  require("images.proc").async({ "magick", path, out }, { text = true }, function(result)
     -- vim.system callbacks run outside the main loop; every caller's `on_done`
     -- ends up in notify and vim.fn.
     vim.schedule(function()
@@ -298,7 +302,7 @@ function run_magick(args, out, label, on_done, accept)
   local tmp = temp_sibling(out)
   local argv = vim.deepcopy(args)
   argv[#argv] = tmp
-  vim.system(argv, { text = true }, function(result)
+  require("images.proc").async(argv, { text = true }, function(result)
     -- vim.system callbacks run outside the main loop; callers notify.
     vim.schedule(function()
       if result.code ~= 0 or not vim.uv.fs_stat(tmp) then

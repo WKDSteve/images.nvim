@@ -8,6 +8,7 @@
 ---@field paste ImagesNvim.PasteConfig
 ---@field cache ImagesNvim.CacheConfig
 ---@field ocr ImagesNvim.OcrConfig
+---@field process ImagesNvim.ProcessConfig
 ---@field keymaps ImagesNvim.KeymapConfig
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
 ---@field menu? ImagesNvim.MenuConfig enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)
@@ -94,6 +95,16 @@
 ---@field windows_clipboard_timeout_ms integer Windows only: how long the persistent clipboard helper may take on one read before it is killed and restarted — see images.win_clipboard_worker
 ---@field windows_persistent_helper boolean Windows only: keep one PowerShell process alive for the session instead of spawning a fresh one per paste (default true); `false` opts out entirely — see images.win_clipboard_worker
 
+---@class ImagesNvim.ProcessConfig : ImagesNvim.ProcessOpts
+---@field timeout_ms integer a call that takes longer is killed and reported (default 20000)
+---@field magick_memory string|false `-limit memory` and `-limit map` for every magick run (default "512MiB"); false = none
+---@field magick_time_s number|false `-limit time` in seconds for every magick run (default 60); false = none
+
+---@class ImagesNvim.ProcessOpts
+---@field timeout_ms? integer
+---@field magick_memory? string|false
+---@field magick_time_s? number|false
+
 ---@class ImagesNvim.OcrConfig : ImagesNvim.OcrOpts
 ---@field lang string tesseract language code passed to `-l`; several at once as tesseract writes them, e.g. "deu+eng" (see images.ocr)
 ---@field args string[] extra tesseract arguments, appended verbatim (e.g. { "--psm", "6" })
@@ -127,6 +138,7 @@
 ---@field paste?      ImagesNvim.PasteOpts
 ---@field cache?      ImagesNvim.CacheOpts disk cache housekeeping (svg, pdf, remote)
 ---@field ocr?        ImagesNvim.OcrOpts
+---@field process?    ImagesNvim.ProcessOpts external programs: call timeout and magick resource limits
 ---@field keymaps?    ImagesNvim.KeymapOpts
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
 ---@field menu?       ImagesNvim.MenuOpts enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)

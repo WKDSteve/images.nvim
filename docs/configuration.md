@@ -24,6 +24,7 @@ its default the same way. Both are also kept for `:checkhealth images` — see
 - [ocr](#ocr)
 - [pdf](#pdf)
 - [cache](#cache)
+- [process](#process)
 - [menu](#menu)
 - [integrations](#integrations)
 - [keymaps](#keymaps)
@@ -37,6 +38,7 @@ require("images").setup({
   extensions = { "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg" },
   deps_popup = true,
   cache = { max_age_days = 30, max_size_mb = 200 },
+  process = { timeout_ms = 20000, magick_memory = "512MiB", magick_time_s = 60 },
   display = {
     max_cols = 60,
     max_rows = 25,
@@ -371,6 +373,20 @@ mtime, page and dpi.
 | --- | --- | --- |
 | `max_age_days` | `30` | The disk caches (`svg`, `pdf`, `remote` under `stdpath("cache")/images.nvim`) are swept once per session: files older than this many days go |
 | `max_size_mb` | `200` | After that, the oldest files of a cache go until it fits this many megabytes |
+
+## process
+
+External programs (`magick`, `tesseract`) are started through `images.proc`.
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `timeout_ms` | `20000` | A call that has to answer synchronously (block-graphics sampling, SVG to PNG, `identify`, `tesseract --list-langs`) and every async one is killed after this long and reported, instead of freezing Neovim or hanging unseen |
+| `magick_memory` | `"512MiB"` | `-limit memory` and `-limit map` for every `magick` run, so a hostile or huge image cannot take the machine's memory. `false` = no limit |
+| `magick_time_s` | `60` | `-limit time` in seconds for every `magick` run. `false` = no limit |
+
+The limits sit right after the `magick` binary name in every argument list. They are an addition to the system's
+`policy.xml`, not a replacement. SVG input is still read with ImageMagick's normal delegates (see the decision note in
+the vault task `images.nvim/sync-subprocess-timeouts`).
 
 ## menu
 

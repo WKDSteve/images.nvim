@@ -30,6 +30,8 @@ return {
       "magick",
       -- ocr_spec.lua runs the real tesseract binary (the specs skip when it is absent).
       "tesseract",
+      -- proc_spec.lua starts the running Neovim as the stand-in for a process that hangs and one that exits 0.
+      "nvim",
       -- ps_path_spec.lua runs one real powershell.exe (skipped where absent) to prove a hostile path stays inside its string.
       "powershell",
       -- pty_osc1337_spec.lua drives a real Neovim in tmux (WSL on Windows) to read the OSC 1337 bytes back.

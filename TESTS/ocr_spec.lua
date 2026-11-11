@@ -162,7 +162,11 @@ return function(H)
 
     local function reset(upscale)
       calls, magick_fails, magick_present = {}, false, true
-      config.setup({ ocr = { bin = "/fake/tesseract", upscale = upscale } })
+      -- the resource limits are images.proc's business (proc_spec); here the argv positions are what is read
+      config.setup({
+        ocr = { bin = "/fake/tesseract", upscale = upscale },
+        process = { magick_memory = false, magick_time_s = false },
+      })
       ocr.clear()
     end
 

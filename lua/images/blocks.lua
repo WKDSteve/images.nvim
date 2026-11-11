@@ -380,7 +380,8 @@ function M.sample(paths, cols, rows)
   -- expected back have to be the same geometry's, and reading the
   -- configuration twice is a way for them not to be.
   local geo = M.geometry()
-  local result = vim.system(M.sample_argv(paths, cols, rows, geo), { text = false }):wait()
+  local result, timed_out = require("images.proc").sync(M.sample_argv(paths, cols, rows, geo), { text = false })
+  if timed_out then return nil, "magick did not answer in time (process.timeout_ms)" end
   return M.read_sampled(result, #paths, cols, rows, geo)
 end
 
@@ -401,7 +402,7 @@ function M.sample_async(paths, cols, rows, callback)
   -- configuration change while ImageMagick runs would otherwise validate the
   -- answer against a geometry that was never asked for.
   local geo = M.geometry()
-  vim.system(M.sample_argv(paths, cols, rows, geo), { text = false }, function(result)
+  require("images.proc").async(M.sample_argv(paths, cols, rows, geo), { text = false }, function(result)
     local raw, err = M.read_sampled(result, #paths, cols, rows, geo)
     vim.schedule(function()
       callback(raw, err)
