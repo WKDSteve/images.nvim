@@ -234,7 +234,7 @@ Export as PDF next to the source. Routes through
 when that plugin is installed — asynchronous, lossless via `img2pdf` if
 available. Without it, the ImageMagick-only path, also asynchronous.
 
-### `:Image ocr [path] [--lang=<code>]`
+### `:Image ocr [path] [--lang=<code>] [--upscale[=N]]`
 
 Run the image through `tesseract` and open the recognised text in a `markdown`
 scratch split below. A screenshot of an error message becomes something you can
@@ -246,9 +246,11 @@ instead of stacking windows.
 :Image ocr
 :Image ocr --lang=deu+eng
 :Image ocr -l deu ./scan.png
+:Image ocr --upscale ./small.png
+:Image ocr --upscale=3 ./small.png
 ```
 
-`--lang` / `-l` overrides `ocr.lang` for this run. Needs `tesseract` **plus**
+`--lang` / `-l` overrides `ocr.lang` for this run. `--upscale` enlarges the image with ImageMagick first (bare: 2x, `=N`: factor N) for this run, like `ocr.upscale`. Needs `tesseract` **plus**
 the language data for whatever language is asked for — those install
 separately. See
 [FEATURES/CAPTURE.md](FEATURES/CAPTURE.md#ocr--read-the-text-out-of-an-image),

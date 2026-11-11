@@ -268,7 +268,7 @@ Calling |images.setup()| is optional when using `opts`.
                         in-place edit of the source, which none of these
                         operations does.
 
-:Image ocr [{path}] [--lang={code}]                       *images-ocr*
+:Image ocr [{path}] [--lang={code}] [--upscale[={N}]]       *images-ocr*
                         Read the text out of {path} — or out of the image
                         under the cursor — with `tesseract`, and open it in
                         a `markdown` scratch split below. The buffer is
@@ -276,6 +276,8 @@ Calling |images.setup()| is optional when using `opts`.
                         second run on the same screenshot replaces the
                         previous result rather than stacking windows.
                         `--lang`/`-l` overrides `ocr.lang` for this call.
+                        `--upscale` enlarges the image with ImageMagick
+                        first (bare: 2x, `={N}`: factor N), like `ocr.upscale`.
 
                         A split rather than a preview popup on purpose:
                         recognised text is raw material — you correct a

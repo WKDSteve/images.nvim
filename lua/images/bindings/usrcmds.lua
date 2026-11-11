@@ -312,10 +312,26 @@ function M.register(cfg)
             type = "STRING",
             desc = "Tesseract language code, e.g. deu; default: ocr.lang",
           },
+          -- Optional value: a bare `--upscale` must not swallow the path that may follow it.
+          {
+            name = "upscale",
+            type = "STRING",
+            optional_value = true,
+            desc = "Enlarge with ImageMagick before recognition: bare = 2x, =N = factor N; default: ocr.upscale",
+          },
         },
-        desc = "Read the text out of an image into a scratch buffer (tesseract); --lang=<code> overrides ocr.lang",
+        desc = "Read the text out of an image into a scratch buffer (tesseract); --lang=<code> overrides ocr.lang, --upscale[=N] enlarges first",
         run = function(ctx)
-          require("images").ocr(ctx.args.path, { lang = ctx.flags.lang })
+          local upscale = ctx.flags.upscale
+          if type(upscale) == "string" then
+            local n = tonumber(upscale)
+            if not n then
+              require("lib.nvim.notify").create("[images]").error(("--upscale expects a number, got '%s'"):format(upscale))
+              return
+            end
+            upscale = n
+          end
+          require("images").ocr(ctx.args.path, { lang = ctx.flags.lang, upscale = upscale })
         end,
       },
 

@@ -21,7 +21,7 @@ completion and this table all come from the same spec.
 | `:Image replace [path]` | — | Overwrite an image with the clipboard, keep the link |
 | `:Image export [path]` | — | Export an image as PDF next to the source file (via `pdfport.nvim` if installed, else needs ImageMagick) |
 | `:Image redact [path]` | — | Censor mode in a zen window: mark boxes (left-button drag, or `v` + hjkl + `<CR>`), `u` removes the last, `w` blacks them out into a new file (needs ImageMagick) |
-| `:Image ocr [path] [--lang=<code>]` | — | Read the text out of an image into a markdown scratch split (needs `tesseract`); `--lang`/`-l` overrides `ocr.lang` |
+| `:Image ocr [path] [--lang=<code>] [--upscale[=N]]` | — | Read the text out of an image into a markdown scratch split (needs `tesseract`); `--lang`/`-l` overrides `ocr.lang`, `--upscale[=N]` enlarges first (`ocr.upscale` for one call) |
 | `:Image scale <size> [path]` | — | Resized copy next to the source (`photo.png` → `photo.scaled.png`); `size` is `50%`, `800x600`, `800x`, `x600` or `800x600!` (needs ImageMagick) |
 | `:Image optimise [path] [--quality=<n>]` | — | Smaller copy next to the source (`photo.png` → `photo.optimised.png`): metadata stripped, best compression. A result that is not smaller is deleted and reported (needs ImageMagick) |
 | `:Image convert <format> [path]` | — | Copy in another format, same stem (`photo.jpg` → `photo.png`); `pdf` takes the same route as `:Image export` (needs ImageMagick) |

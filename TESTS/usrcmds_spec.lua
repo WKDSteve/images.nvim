@@ -40,6 +40,7 @@ return function(H)
     pin = record("pin"),
     recheck = record("recheck"),
     clear = record("clear"),
+    ocr = record("ocr"),
   }
 
   local buf = vim.api.nvim_create_buf(false, true)
@@ -133,6 +134,24 @@ return function(H)
   H.eq(run("ImageTest pin")[1], "pin", "pin dispatches correctly")
   H.eq(run("ImageTest check")[1], "recheck", "check dispatches to recheck")
   H.eq(run("ImageTest clear")[1], "clear", "clear dispatches correctly")
+
+  -- ── ocr --upscale[=N]: bare = true (2x), =N = the factor, absent = nil (config decides) ──
+  local png = vim.fs.normalize(vim.fn.tempname() .. ".png")
+  vim.fn.writefile({ "x" }, png)
+  call = run("ImageTest ocr " .. png)
+  H.eq(call[3].upscale, nil, "ocr without --upscale leaves it to ocr.upscale")
+  call = run("ImageTest ocr --upscale " .. png)
+  H.eq(call[3].upscale, true, "a bare --upscale means the default factor")
+  H.eq(call[2], png, "…and does not swallow the path that follows it")
+  call = run("ImageTest ocr " .. png .. " --upscale=3")
+  H.eq(call[3].upscale, 3, "--upscale=3 is the number 3")
+  call = run("ImageTest ocr --lang=deu --upscale=1.5")
+  H.eq(call[3].upscale, 1.5, "fractions pass through")
+  H.eq(call[3].lang, "deu", "…next to --lang")
+  calls = {}
+  pcall(vim.cmd, "ImageTest ocr " .. png .. " --upscale=big") -- the error notification throws headless
+  call = calls[1]
+  H.eq(call, nil, "a non-number is refused and OCR is not started")
 
   package.loaded["images"] = real_images
   pcall(vim.api.nvim_buf_delete, buf, { force = true })
