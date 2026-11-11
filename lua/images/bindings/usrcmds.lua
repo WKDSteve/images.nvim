@@ -477,6 +477,14 @@ function M.register(cfg)
       },
 
       {
+        path = { "selftest" },
+        desc = "Draw the test card and print the terminal probe's result; you judge whether the card is visible",
+        run = function()
+          require("images").selftest()
+        end,
+      },
+
+      {
         path = { "check" },
         desc = "Check whether this terminal can display images",
         run = function()

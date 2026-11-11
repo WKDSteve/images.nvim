@@ -41,6 +41,7 @@ return function(H)
     recheck = record("recheck"),
     clear = record("clear"),
     ocr = record("ocr"),
+    selftest = record("selftest"),
   }
 
   local buf = vim.api.nvim_create_buf(false, true)
@@ -134,6 +135,8 @@ return function(H)
   H.eq(run("ImageTest pin")[1], "pin", "pin dispatches correctly")
   H.eq(run("ImageTest check")[1], "recheck", "check dispatches to recheck")
   H.eq(run("ImageTest clear")[1], "clear", "clear dispatches correctly")
+
+  H.eq(run("ImageTest selftest")[1], "selftest", "selftest dispatches correctly")
 
   -- ── ocr --upscale[=N]: bare = true (2x), =N = the factor, absent = nil (config decides) ──
   local png = vim.fs.normalize(vim.fn.tempname() .. ".png")

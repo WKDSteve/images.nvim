@@ -293,6 +293,13 @@ query went unanswered it is sent again; the reply arrives asynchronously, so
 a second `:Image check` reports it. OSC 1337 itself has no capability query, so
 whether images really get through only shows when one is drawn.
 
+### `:Image selftest`
+
+`:Image check` followed by a drawn test card: the detection is re-run and
+reported, and a generated card is shown. Whether the card is visible, sharp and
+uncropped is your call; the command only puts both in front of you. On a
+terminal that is not capable nothing is drawn and the reason is printed.
+
 ### `:Image calibrate`
 
 Measure how this terminal actually places an image, interactively. It draws a

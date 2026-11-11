@@ -762,6 +762,29 @@ function M.recheck()
   return cap
 end
 
+--- Draw the test card and report what the terminal probe found, in one step:
+--- `recheck()` (capability + XTVERSION status) followed by `show` of a generated
+--- card. Whether the card is actually visible stays the user's call.
+---@return boolean drawn  true = the card was handed to `show`
+function M.selftest()
+  local cap = M.recheck()
+  if not cap.ok then
+    return false -- recheck already said why
+  end
+  local cols, rows = 24, 12
+  local card, err = require("images.testcard").write(cols, rows, require("images.scale").CELL_ASPECT)
+  if not card then
+    notify().error(err or "could not write the test card")
+    return false
+  end
+  -- The terminal has read the file long before this; the delay only keeps a slow draw from losing it.
+  vim.defer_fn(function()
+    pcall(os.remove, card)
+  end, 30000)
+  notify().info("test card drawn: do you see it, sharp and uncropped? (:Image clear removes it)")
+  return M.show(card)
+end
+
 --- Set the plugin up.
 ---@param opts ImagesNvim.Opts|nil see `images.config.DEFAULTS`
 ---@return nil

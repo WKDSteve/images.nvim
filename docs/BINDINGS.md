@@ -34,6 +34,7 @@ completion and this table all come from the same spec.
 | `:Image draw <position> [path]` | — | Draw an image at a named position in the current window (`full`/9 anchors); the primitive zen/hover/redact/the picker preview build on, also `images.draw()` |
 | `:Image pin` | — | Keep the image on screen instead of clearing on cursor move |
 | `:Image check` | — | Report whether this terminal can display images |
+| `:Image selftest` | — | `:Image check`, then draw the test card; you judge whether it is visible |
 | `:Image clear` | — | Remove displayed images, release a pin, and close a `:Image zen` window |
 
 `range = true` is set once at the verb level, not per route — the composer
