@@ -396,6 +396,10 @@ Calling |images.setup()| is optional when using `opts`.
                         when the two disagree. An unanswered query is sent
                         again; run it twice to see that reply.
 
+:Image selftest         `:Image check`, then draw the generated test
+                        card. Whether the card is visible, sharp and
+                        uncropped is your call.
+
 :Image clear            Remove displayed images and release a pin. Also
                         closes an open `:Image zen` window.
 
