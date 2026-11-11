@@ -239,11 +239,39 @@ local function read_file(file)
     effective = png
   end
 
+  -- A size guard before the read: the whole file is read and encoded on the main thread. Over the limit the draw
+  -- uses a shrunk copy (ImageMagick) or is refused with a message that says what to change.
+  local display = require("images.config").get().display
+  local limit_mb = display.max_file_mb
+  local stat = vim.uv.fs_stat(effective)
+  if type(limit_mb) == "number" and limit_mb > 0 and stat and stat.size > limit_mb * 1024 * 1024 then
+    local mb = stat.size / (1024 * 1024)
+    local shrunk, shrink_err
+    if display.shrink_oversized ~= false then
+      shrunk, shrink_err = require("images.convert").shrink(effective, display.shrink_px or 2400)
+    else
+      shrink_err = "`display.shrink_oversized` is off"
+    end
+    if not shrunk then
+      return nil,
+        ("%s is %.1f MB, over `display.max_file_mb` (%g): %s; raise the limit or install ImageMagick"):format(
+          vim.fn.fnamemodify(effective, ":t"),
+          mb,
+          limit_mb,
+          shrink_err or "not shrunk"
+        )
+    end
+    effective = shrunk
+  end
+
   local raw, read_err = require("lib.nvim.fs.read")(effective)
   if not raw then return nil, ("file not readable: %s (%s)"):format(effective, read_err or "?") end
   if raw == "" then return nil, "file is empty: " .. effective end
   return raw
 end
+
+--- `read_file`, exported so the size guard can be checked without a terminal (the draw itself needs `nvim_ui_send`).
+M.read_file = read_file
 
 --- Build the OSC 1337 sequence for an image file's contents.
 ---@param raw string raw file bytes

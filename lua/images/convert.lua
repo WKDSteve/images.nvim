@@ -110,6 +110,46 @@ function M.to_png(path)
   return out
 end
 
+--- A copy of `path` that fits in `px` on its longer side, as PNG, cached by path, mtime and `px`. For the draw
+--- path: a photo above `display.max_file_mb` is sent to the terminal as a reduced copy instead of whole. The
+--- first frame only (`[0]`); an image already smaller than `px` keeps its size (`>`), it is only re-encoded.
+---@param path string absolute path of the original
+---@param px integer longer side, in pixels
+---@return string|nil png_path
+---@return string|nil err
+function M.shrink(path, px)
+  if not require("lib.nvim.cross.executable").exists("magick") then
+    return nil, "shrinking needs ImageMagick (`magick` not found)"
+  end
+  local stat = vim.uv.fs_stat(path)
+  if not stat then return nil, "file not found: " .. path end
+
+  local dir = vim.fn.stdpath("cache") .. "/images.nvim/shrunk"
+  require("lib.nvim.fs.mkdirp")(dir)
+  require("images.cache").schedule_sweep()
+  local key = vim.fn.sha256(("%s:%d:%d:%d"):format(path, stat.mtime and stat.mtime.sec or 0, stat.size, px))
+  local out = dir .. "/" .. key .. ".png"
+  if vim.uv.fs_stat(out) then
+    require("images.cache").touch(out)
+    return out
+  end
+
+  local tmp = out .. ".tmp.png"
+  local geometry = ("%dx%d>"):format(px, px)
+  local result, timed_out = require("images.proc").sync({ "magick", path .. "[0]", "-resize", geometry, tmp }, { text = true })
+  if timed_out or result.code ~= 0 or not vim.uv.fs_stat(tmp) then
+    pcall(vim.uv.fs_unlink, tmp)
+    return nil,
+      timed_out and "shrinking timed out (process.timeout_ms)" or ("shrinking failed: " .. vim.trim(result.stderr or ""))
+  end
+  local renamed = vim.uv.fs_rename(tmp, out)
+  if not renamed then
+    pcall(vim.uv.fs_unlink, tmp)
+    return nil, "could not store the shrunk copy"
+  end
+  return out
+end
+
 --- Export an image as a PDF next to the source file, on the same stem
 --- ("image.png" -> "image.pdf"). An existing target file is overwritten — the
 --- same stance as `:Image paste`/`replace`, which also write target files

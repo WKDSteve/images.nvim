@@ -16,6 +16,15 @@ return {
     -- cell -- the very point where snacks.image fails on Windows.
     max_cols = 60,
     max_rows = 25,
+    -- Largest file drawn as it is, in MB. The whole file is read, base64-encoded (a third larger) and sent in
+    -- one terminal write on the main thread: measured 6 ms for a 0.3 MB screenshot, ~37 ms of CPU for 20 MB
+    -- before the terminal has even started decoding, and over SSH the transfer dominates. Above the limit the
+    -- image is shrunk with ImageMagick first (`shrink_oversized`), or refused with a message. 0 = no limit.
+    max_file_mb = 25,
+    -- Above `max_file_mb`: shrink to a PNG that fits in `shrink_px` on its longer side (cached under
+    -- stdpath("cache")/images.nvim/shrunk) instead of refusing. Needs ImageMagick; without it the message says so.
+    shrink_oversized = true,
+    shrink_px = 2400,
     -- Pixel aspect ratio of a terminal cell (width/height). 0 = use the 0.5
     -- assumption from images.scale. Affects how tightly the draw box sits
     -- around an image: too coarse a value leaves an empty strip below it.

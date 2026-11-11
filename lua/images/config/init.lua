@@ -23,6 +23,9 @@ local KNOWN = {
   display = {
     max_cols = true,
     max_rows = true,
+    max_file_mb = true,
+    shrink_oversized = true,
+    shrink_px = true,
     cell_aspect = true,
     draw_inset = true,
     terminal_padding = { row = true, col = true },

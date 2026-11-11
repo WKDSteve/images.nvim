@@ -108,6 +108,7 @@ local specs = {
   "capability_spec.lua",
   "selftest_spec.lua",
   "proc_spec.lua",
+  "terminal_limit_spec.lua",
   "xtversion_spec.lua",
   "orphans_spec.lua",
   "keymaps_spec.lua",

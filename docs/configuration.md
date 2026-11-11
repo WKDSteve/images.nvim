@@ -42,6 +42,9 @@ require("images").setup({
   display = {
     max_cols = 60,
     max_rows = 25,
+    max_file_mb = 25,
+    shrink_oversized = true,
+    shrink_px = 2400,
     cell_aspect = 0,
     draw_inset = 1,
     terminal_padding = { row = 0, col = 0 },
@@ -130,6 +133,8 @@ require("images").setup({
 | Key | Default | What it does |
 | --- | --- | --- |
 | `max_cols` / `max_rows` | `60` / `25` | The largest box an image is drawn into, **in terminal cells, not pixels**. The terminal scales into that box itself, which is why the pixel size of a cell never has to be known |
+| `max_file_mb` | `25` | Largest file drawn as it is. The whole file is read, base64-encoded and sent in one write on the main thread (measured: 6 ms for a 0.3 MB screenshot, about 37 ms of CPU for 20 MB, plus the terminal's own decoding and, over SSH, the transfer). Above it the image is shrunk or refused with a message. `0` = no limit |
+| `shrink_oversized` / `shrink_px` | `true` / `2400` | Above `max_file_mb`: draw a PNG shrunk to `shrink_px` on its longer side (made with ImageMagick, cached under `stdpath("cache")/images.nvim/shrunk`) instead of refusing. Without ImageMagick the message says so |
 | `cell_aspect` | `0` | Pixel aspect ratio (width/height) of one cell. `0` uses the 0.5 assumption from `images.scale`. Cannot be detected; `:Image calibrate` measures it with you |
 | `draw_inset` | `1` | Cells of margin kept free all round. The default is robustness, not looks — see [Placement](#placement-draw_inset-terminal_padding-cell_aspect) below. `0` draws flush |
 | `terminal_padding` | `{ row = 0, col = 0 }` | Whole-cell draw offset for terminals whose window padding is not cell-aligned. Negative values move the image up/left |

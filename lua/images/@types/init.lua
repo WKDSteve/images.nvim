@@ -31,6 +31,9 @@
 
 ---@class ImagesNvim.DisplayConfig : ImagesNvim.DisplayOpts
 ---@field max_cols integer maximum image width in terminal cells
+---@field max_file_mb number largest file drawn as it is, in MB (default 25); above it the image is shrunk or refused; 0 = no limit
+---@field shrink_oversized boolean above `max_file_mb`, shrink with ImageMagick instead of refusing (default true)
+---@field shrink_px integer longer side, in pixels, of a shrunk copy (default 2400)
 ---@field max_rows integer maximum image height in terminal rows
 ---@field gallery_gap integer cells of spacing between gallery tiles
 ---@field cell_aspect number pixel aspect ratio of one cell (width/height); 0 = the 0.5 assumption from images.scale, see images.cell
@@ -161,6 +164,9 @@
 
 ---@class ImagesNvim.DisplayOpts
 ---@field max_cols?           integer maximum image width in terminal cells
+---@field max_file_mb?        number largest file drawn as it is, in MB; 0 = no limit
+---@field shrink_oversized?   boolean above `max_file_mb`, shrink with ImageMagick instead of refusing
+---@field shrink_px?          integer longer side, in pixels, of a shrunk copy
 ---@field max_rows?           integer maximum image height in terminal rows
 ---@field gallery_gap?        integer cells of spacing between gallery tiles
 ---@field cell_aspect?        number pixel aspect ratio of one cell (width/height); 0 = the 0.5 assumption from images.scale, see images.cell
