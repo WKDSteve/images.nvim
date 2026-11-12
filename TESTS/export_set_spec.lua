@@ -71,6 +71,12 @@ return function(H)
     "collect: the extension list is the filter (a glob that matches everything still keeps only images)"
   )
   H.eq(#set.collect(base .. "/shots/*.gif"), 0, "collect: no match is an empty list")
+  touch("odd[dir]/one.png")
+  H.eq(
+    names(set.collect(base .. "/odd[dir]")),
+    join("odd[dir]/one.png"),
+    "collect: a directory whose name holds [ ] is listed, not read as a pattern"
+  )
 
   -- ── export_set ───────────────────────────────────────────────────────────
   local real_to_pdf_multi, real_confirm = convert.to_pdf_multi, set.confirm

@@ -44,11 +44,20 @@ function M.collect(spec, extensions)
 
   -- `normalize` expands `~` and `$VAR` but, unlike `expand()`, leaves `*` and `[` alone
   local expanded = vim.fs.normalize(spec)
-  local pattern = expanded
-  if vim.fn.isdirectory(expanded) == 1 then pattern = (expanded:gsub("[/\\]+$", "")) .. "/*" end
+  ---@type string[]
+  local candidates
+  if vim.fn.isdirectory(expanded) == 1 then
+    -- a directory is listed, not globbed: a name with `[` or `*` in it is a name here, not a pattern
+    local dir = (expanded:gsub("/+$", ""))
+    candidates = vim.tbl_map(function(name)
+      return dir .. "/" .. name
+    end, vim.fn.readdir(dir))
+  else
+    candidates = vim.fn.glob(expanded, false, true)
+  end
 
   local out = {}
-  for _, f in ipairs(vim.fn.glob(pattern, false, true)) do
+  for _, f in ipairs(candidates) do
     local ext = f:match("%.([^./\\]+)$")
     if ext and allowed[ext:lower()] and vim.fn.filereadable(f) == 1 then
       out[#out + 1] = vim.fs.normalize(vim.fn.fnamemodify(f, ":p"))
