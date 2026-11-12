@@ -220,6 +220,9 @@ return {
 
   -- External programs (magick, tesseract): how long a call may take before it is killed, and the resource limits
   -- every `magick` run gets (`-limit memory`/`map`/`time`). `false` leaves that limit off. See images.proc.
+  -- `:Image export <dir|glob>`: above this many files it asks before making one PDF of them (0 = never ask).
+  export = { confirm_over = 50 },
+
   process = {
     timeout_ms = 60000,
     magick_memory = "512MiB",

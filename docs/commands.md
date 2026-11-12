@@ -243,6 +243,14 @@ overwritten, like the single export. Same routes as above (`pdfport.create` with
 the whole list, else `magick a.png b.png out.pdf`). Links that do not resolve are
 reported and skipped; remote URLs are not exported (download them first).
 
+### `:Image export <dir|glob> [--out=<pdf>] [--yes]`
+
+A directory or a glob (`shots/*.png`, `shots/**/*.jpg`) makes **one multi-page PDF** of every image in it. Only
+files with an extension from `extensions` count; the pages are in natural order (`page2` before `page10`, case
+ignored). Nothing matching is a message, not an empty PDF. Above `export.confirm_over` files (default 50; `0` =
+never ask) it asks first, `--yes` skips the question. The target is `--out`, or next to the first image like the
+ranged export. A single existing file is always exported alone, even with `[` in its name.
+
 ### `:Image ocr [path] [--lang=<code>] [--upscale[=N]]`
 
 Run the image through `tesseract` and open the recognised text in a `markdown`

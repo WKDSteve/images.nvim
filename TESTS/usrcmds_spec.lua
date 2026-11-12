@@ -148,6 +148,12 @@ return function(H)
   H.eq(call[4], "pages.pdf", "...and --out arrives")
   H.eq(run("2,4ImageTest export")[4], nil, "...no --out: the default target")
   H.eq(run("ImageTest export")[1], "export", "without a range the single export runs")
+  call = run("ImageTest export shots/*.png --out=all.pdf --yes")
+  H.eq(call[1], "export", "a glob argument reaches the export (PATH, not a readable-file check)")
+  H.eq(call[2], "shots/*.png", "...as the token it was typed")
+  H.eq(call[3], "all.pdf", "...with --out")
+  H.eq(call[4] and call[4].yes, true, "...and --yes")
+  H.eq(run("ImageTest export a.png")[4].yes, nil, "no --yes: the question is asked for a large set")
 
   -- ── ocr --upscale[=N]: bare = true (2x), =N = the factor, absent = nil (config decides) ──
   local png = vim.fs.normalize(vim.fn.tempname() .. ".png")

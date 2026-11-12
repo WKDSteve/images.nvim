@@ -233,17 +233,23 @@ function M.register(cfg)
 
       {
         path = { "export" },
-        args = { { name = "path", type = "FILE", optional = true } },
+        -- PATH, not FILE: a glob is not a readable file, the handler decides what the token names
+        args = { { name = "path", type = "PATH", optional = true } },
         flags = {
-          { name = "out", type = "STRING", desc = "Target PDF for a ranged export (default: next to the first image)" },
+          {
+            name = "out",
+            type = "STRING",
+            desc = "Target PDF for a multi-page export (default: next to the first image)",
+          },
+          { name = "yes", bool = true, desc = "Do not ask before exporting a large set (export.confirm_over)" },
         },
-        desc = "Export an image as a PDF next to the source file; with a range (:'<,'>Image export [--out=<pdf>]) all images of the range become one multi-page PDF",
+        desc = "Export an image as a PDF next to the source file; with a range (:'<,'>Image export [--out=<pdf>]) or a directory/glob (:Image export shots/*.png) all those images become one multi-page PDF",
         run = function(ctx)
           if has_range(ctx) then
             require("images").export_range(ctx.range.line1, ctx.range.line2, ctx.flags.out)
             return
           end
-          require("images").export(ctx.args.path)
+          require("images").export(ctx.args.path, ctx.flags.out, { yes = ctx.flags.yes })
         end,
       },
 

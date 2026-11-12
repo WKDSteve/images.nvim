@@ -74,6 +74,7 @@ local KNOWN = {
     gopath_fallback = true,
   },
   cache = { max_age_days = true, max_size_mb = true },
+  export = { confirm_over = true },
   process = { timeout_ms = true, magick_memory = true, magick_time_s = true },
   paste = {
     dir = true,

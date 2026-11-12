@@ -199,6 +199,14 @@ Calling |images.setup()| is optional when using `opts`.
                         Target {pdf}, or `<first stem>-<N>pages.pdf` next to
                         the first image.
 
+:Image export {dir|glob} [--out={pdf}] [--yes]
+                        A directory or a glob (`shots/*.png`): every image
+                        in it (extensions from `extensions`) as ONE
+                        multi-page PDF, natural order (page2 before
+                        page10). No match: a message. Above
+                        `export.confirm_over` files (default 50) it asks
+                        first; --yes skips that.
+
 :Image redact [{path}]  Open {path} — or the image under the cursor — in a
                         censor mode in a zen window (|:Image| zen): drag
                         with the left button over what needs blacking out,

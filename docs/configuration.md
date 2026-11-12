@@ -25,6 +25,7 @@ its default the same way. Both are also kept for `:checkhealth images` — see
 - [pdf](#pdf)
 - [cache](#cache)
 - [process](#process)
+- [export](#export)
 - [menu](#menu)
 - [integrations](#integrations)
 - [keymaps](#keymaps)
@@ -39,6 +40,7 @@ require("images").setup({
   deps_popup = true,
   cache = { max_age_days = 30, max_size_mb = 200 },
   process = { timeout_ms = 60000, magick_memory = "512MiB", magick_time_s = 60 },
+  export = { confirm_over = 50 },
   display = {
     max_cols = 60,
     max_rows = 25,
@@ -392,6 +394,12 @@ External programs (`magick`, `tesseract`) are started through `images.proc`.
 The limits sit right after the `magick` binary name in every argument list. They are an addition to the system's
 `policy.xml`, not a replacement. SVG input is still read with ImageMagick's normal delegates (see the decision note in
 the vault task `images.nvim/sync-subprocess-timeouts`).
+
+## export
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `confirm_over` | `50` | `:Image export <dir|glob>` asks before making one PDF of more files than this. `0` = never ask; `--yes` skips the question once |
 
 ## menu
 

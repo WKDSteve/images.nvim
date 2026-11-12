@@ -397,11 +397,17 @@ end
 --- pdfport.nvim's "PDF page as an image" (still open there). Runs through pdfport.nvim (losslessly via img2pdf) when
 --- installed and available; otherwise through `magick` — both paths
 --- asynchronous, see `images.convert.to_pdf`.
+---
+--- A directory or a glob (`shots/*.png`, `shots/**/*.jpg`) as `path` goes to `M.export_set`: every image in it,
+--- in natural order, as one multi-page PDF.
 ---@param path string|nil nil = the image under the cursor
+---@param out string|nil target PDF for a directory/glob export
+---@param opts? { yes?: boolean } `yes` skips the question for a large set
 ---@return boolean ok  true = the export was started (the result arrives
 ---asynchronously via notify on both paths); false = never started at all (no
 ---image found)
-function M.export(path)
+function M.export(path, out, opts)
+  if require("images.export_set").is_set(path) then return M.export_set(path, out, opts) end
   local file = require("images.resolve").path_or_cursor(path)
   if not file then
     notify().warn("no image under the cursor or at the given path")
@@ -417,6 +423,21 @@ function M.export(path)
   end)
 
   return true
+end
+
+---One multi-page PDF of `paths`, reported through notify.
+---@param paths string[]
+---@param out string|nil
+---@return boolean started
+local function export_paths(paths, out)
+  local err = require("images.convert").to_pdf_multi(paths, out and vim.fn.expand(out) or nil, function(ok, result)
+    if ok then
+      notify().info(("exported %d image(s): %s"):format(#paths, vim.fn.fnamemodify(result, ":~")))
+    else
+      notify().error(result or "export failed")
+    end
+  end)
+  return err == nil
 end
 
 --- The images of a line range as one multi-page PDF, pages in the order of the links in the buffer. A link that is
@@ -436,14 +457,29 @@ function M.export_range(first, last, out)
     notify().info("no local images in this range")
     return false
   end
-  local err = require("images.convert").to_pdf_multi(paths, out and vim.fn.expand(out) or nil, function(ok, result)
-    if ok then
-      notify().info(("exported %d image(s): %s"):format(#paths, vim.fn.fnamemodify(result, ":~")))
-    else
-      notify().error(result or "export failed")
-    end
-  end)
-  return err == nil
+  return export_paths(paths, out)
+end
+
+--- Every image a directory or glob names as one multi-page PDF, in natural order (`page2` before `page10`). Nothing
+--- matching is a message, not an empty PDF; above `export.confirm_over` files it asks first (`opts.yes` skips that).
+---@param spec string a directory or a glob
+---@param out string|nil target PDF; nil = next to the first image
+---@param opts? { yes?: boolean }
+---@return boolean ok  true = the export was started
+function M.export_set(spec, out, opts)
+  local set = require("images.export_set")
+  local files = set.collect(spec)
+  if #files == 0 then
+    notify().info("no images match " .. spec)
+    return false
+  end
+  local limit = (require("images.config").get().export or {}).confirm_over
+  if type(limit) ~= "number" then limit = 50 end
+  if limit > 0 and #files > limit and not (opts and opts.yes) and not set.confirm(#files) then
+    notify().info("export cancelled")
+    return false
+  end
+  return export_paths(files, out)
 end
 
 --- Write a resized copy of an image next to the source

@@ -130,6 +130,7 @@ local specs = {
   "cache_spec.lua",
   "win_clipboard_worker_spec.lua",
   "convert_spec.lua",
+  "export_set_spec.lua",
   "ocr_spec.lua",
   "remote_spec.lua",
   "screenshot_spec.lua",

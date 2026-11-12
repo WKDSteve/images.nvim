@@ -9,6 +9,7 @@
 ---@field cache ImagesNvim.CacheConfig
 ---@field ocr ImagesNvim.OcrConfig
 ---@field process ImagesNvim.ProcessConfig
+---@field export ImagesNvim.ExportConfig
 ---@field keymaps ImagesNvim.KeymapConfig
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
 ---@field menu? ImagesNvim.MenuConfig enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)
@@ -103,6 +104,12 @@
 ---@field magick_memory string|false `-limit memory` and `-limit map` for every magick run (default "512MiB"); false = none
 ---@field magick_time_s number|false `-limit time` in seconds for every magick run (default 60); false = none
 
+---@class ImagesNvim.ExportConfig : ImagesNvim.ExportOpts
+---@field confirm_over integer
+
+---@class ImagesNvim.ExportOpts
+---@field confirm_over? integer `:Image export <dir|glob>` asks before a set of more files than this (default 50; 0 = never ask)
+
 ---@class ImagesNvim.ProcessOpts
 ---@field timeout_ms? integer
 ---@field magick_memory? string|false
@@ -141,6 +148,7 @@
 ---@field paste?      ImagesNvim.PasteOpts
 ---@field cache?      ImagesNvim.CacheOpts disk cache housekeeping (svg, pdf, remote)
 ---@field ocr?        ImagesNvim.OcrOpts
+---@field export?     ImagesNvim.ExportOpts          `:Image export <dir|glob>`: when it asks before a large set
 ---@field process?    ImagesNvim.ProcessOpts external programs: call timeout and magick resource limits
 ---@field keymaps?    ImagesNvim.KeymapOpts
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
