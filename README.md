@@ -89,3 +89,32 @@ each page answers.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 images.nvim is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+<!-- connections:begin (written by the app-icons tool of the workshop; change integrations.json there, not this block) -->
+## Connections
+
+![images.nvim: what it uses and what uses it](assets/graphs/images.nvim.png)
+
+**Uses**
+
+- [gopath.nvim](https://github.com/WKDSteve/gopath.nvim): images.nvim writes the link of a pasted image in the environment spelling of gopath.nvim (`gopath.shorten_path`) when it is installed. ([picture](assets/graphs/pair/images.nvim--gopath.nvim.png))
+- [markdown.nvim](https://github.com/WKDSteve/markdown.nvim): images.nvim resolves paths with the resolver of markdown.nvim (`markdown.util.path`) when it is installed, and with its own otherwise. ([picture](assets/graphs/pair/images.nvim--markdown.nvim.png))
+- [pdfport.nvim](https://github.com/WKDSteve/pdfport.nvim): images.nvim renders a page of a PDF through pdfport.nvim (`render_page`). ([picture](assets/graphs/pair/images.nvim--pdfport.nvim.png))
+- [ui.nvim](https://github.com/WKDSteve/ui.nvim): The menu integration of images.nvim uses the context menu of ui.nvim (`ui.contextmenu`); `config.menu.enable` opts out. ([picture](assets/graphs/pair/images.nvim--ui.nvim.png))
+- [lib.nvim](https://github.com/WKDSteve/lib.nvim): the shared base of the plugins.
+
+**Used by**
+
+- [buffer-ctx.nvim](https://github.com/WKDSteve/buffer-ctx.nvim): `:Insert imagepaste` of buffer-ctx.nvim dispatches to images.nvim; without it the command fails. ([picture](assets/graphs/pair/buffer-ctx.nvim--images.nvim.png))
+- [diff.nvim](https://github.com/WKDSteve/diff.nvim): The image compare of diff.nvim uses images.nvim (`features.image_compare`). ([picture](assets/graphs/pair/diff.nvim--images.nvim.png))
+- [filetree.nvim](https://github.com/WKDSteve/filetree.nvim): The preview of filetree.nvim shows a picture through images.nvim when its backend is `images.nvim` or `auto`. ([picture](assets/graphs/pair/filetree.nvim--images.nvim.png))
+- [gopath.nvim](https://github.com/WKDSteve/gopath.nvim): gopath.nvim opens an image through images.nvim when it is installed (`gopath.external.images`). ([picture](assets/graphs/pair/gopath.nvim--images.nvim.png))
+- [hover.nvim](https://github.com/WKDSteve/hover.nvim): The media preview of hover.nvim reads sizes and settings from images.nvim (`images.info`, `images.config`) to draw a picture in the float. ([picture](assets/graphs/pair/hover.nvim--images.nvim.png))
+- [insights.nvim](https://github.com/WKDSteve/insights.nvim): images.nvim shows the import graph of `:Insights imports graph` inline; without it the PNG is only written. ([picture](assets/graphs/pair/insights.nvim--images.nvim.png))
+- [markdown.nvim](https://github.com/WKDSteve/markdown.nvim): The image command of markdown.nvim hands the picture to images.nvim when it is installed. ([picture](assets/graphs/pair/markdown.nvim--images.nvim.png))
+- [media.nvim](https://github.com/WKDSteve/media.nvim): media.nvim reads the text of an image with the OCR of images.nvim (`images.ocr`). ([picture](assets/graphs/pair/media.nvim--images.nvim.png))
+- [open.nvim](https://github.com/WKDSteve/open.nvim): The image handler of open.nvim opens an image through images.nvim when it is installed. ([picture](assets/graphs/pair/open.nvim--images.nvim.png))
+- [pickers.nvim](https://github.com/WKDSteve/pickers.nvim): With images.nvim installed, pickers.nvim previews image entries as pictures; without it they preview as text. ([picture](assets/graphs/pair/pickers.nvim--images.nvim.png))
+- [reposcope.nvim](https://github.com/WKDSteve/reposcope.nvim): The README image preview of reposcope.nvim uses images.nvim (`images.config`). ([picture](assets/graphs/pair/reposcope.nvim--images.nvim.png))
+- [runtime-analysis.nvim](https://github.com/WKDSteve/runtime-analysis.nvim): runtime-analysis.nvim shows its graphic through images.nvim when it is installed; otherwise the system opener shows it. ([picture](assets/graphs/pair/runtime-analysis.nvim--images.nvim.png))
+<!-- connections:end -->
