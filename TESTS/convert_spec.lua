@@ -43,6 +43,7 @@ return function(H)
   if vim.fn.executable("magick") == 0 then
     -- The actual conversion path cannot be checked meaningfully without
     -- ImageMagick -- exactly the case the guardrail anticipates.
+    print("n/a  the conversion checks need ImageMagick (magick)")
     return
   end
 

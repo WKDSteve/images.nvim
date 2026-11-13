@@ -9,24 +9,26 @@
 -- one of the "soft-dependency bridges" under `integrations/`, soft meaning
 -- the *target* — nvzone/menu — not ui.nvim itself).
 --
--- TESTS/run.lua deliberately does NOT add ui.nvim to this suite's shared
--- runtimepath/package.path — compare_spec.lua's regression coverage for
--- `:Image compare` depends on `ui.kit` staying unreachable there (see its own
--- header). So this spec resolves ui.nvim on its own, scoped to this file: it
--- extends `package.path` only for the duration of this function and restores
--- the original value before returning, on every exit path, so no other spec
--- (run before or after this one) ever observes the change. If no sibling
--- checkout is found, this spec is a clean no-op, the same convention
--- resolve_spec.lua uses for its own gopath.nvim block.
+-- ui.nvim is deliberately NOT a dependency of the suite (.testing.lua `deps`)
+-- — compare_spec.lua's regression coverage for `:Image compare` depends on
+-- `ui.kit` staying unreachable (see its own header). So this spec resolves
+-- ui.nvim on its own, scoped to this file: it extends `package.path` only for
+-- the duration of this function and restores the original value before
+-- returning, on every exit path. Without a ui.nvim checkout the spec reports
+-- itself as n/a. With one, a module that fails to load for any other reason
+-- than a missing `ui.contextmenu` is a failure, never a silent pass.
 
----@param H table harness from TESTS/run.lua
+---@param H table harness of testing.nvim's h dialect (TESTS/harness.lua)
 return function(H)
   local repo = vim.fs.normalize(vim.uv.cwd())
 
   ---@return string|nil
   local function find_ui_nvim()
     local candidates = {}
-    if vim.env.UI_NVIM_PATH then candidates[#candidates + 1] = vim.env.UI_NVIM_PATH end
+    for _, var in ipairs({ "UI_NVIM_DIR", "UI_NVIM_PATH" }) do
+      if vim.env[var] and vim.env[var] ~= "" then candidates[#candidates + 1] = vim.env[var] end
+    end
+    candidates[#candidates + 1] = repo .. "/.deps/ui.nvim"
     candidates[#candidates + 1] = repo .. "/../ui.nvim"
     candidates[#candidates + 1] = vim.fn.stdpath("data") .. "/lazy/ui.nvim"
     for _, path in ipairs(candidates) do
@@ -48,9 +50,15 @@ return function(H)
 
   local ok_menu, menu = pcall(require, "images.integrations.menu")
   if not ok_menu then
-    -- A sibling checkout exists but does not actually provide ui.contextmenu
-    -- (an unrelated or half-built directory) — degrade the same as "absent".
     package.path = original_package_path
+    if tostring(menu):find("module 'ui.contextmenu' not found", 1, true) then
+      -- A checkout exists but does not provide ui.contextmenu (an unrelated or
+      -- half-built directory): the same as no checkout.
+      print("n/a  the menu checks need a ui.nvim checkout with ui.contextmenu")
+      return
+    end
+    -- Anything else is a broken module under test, not a missing dependency.
+    H.ok(false, "images.integrations.menu loads: " .. tostring(menu))
     return
   end
 

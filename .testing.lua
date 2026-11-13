@@ -48,9 +48,6 @@ return {
   timeouts = { file_ms = 300000 },
   -- Environment variables the specs read; a child editor inherits an allowlist only (never secrets).
   env_allow = { "MAGICK_*" },
-  -- menu_spec.lua returns without a single assertion when no ui.nvim checkout exists (CI, by design);
-  -- the old runner let that pass.
-  assertions = "warn",
   -- Findings the minimal conformance editor cannot avoid (docs/CONFORMANCE.md of testing.nvim); reviewed 2026-10-14.
   conformance = {
     -- gated: a failed check makes `scripts/test.sh conformance` exit 1

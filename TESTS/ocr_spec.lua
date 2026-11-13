@@ -280,6 +280,7 @@ return function(H)
     -- No way to produce an image with known text in it, so the recognition
     -- itself cannot be asserted on -- only guessed at, which is worse than
     -- skipping.
+    print("n/a  the recognition checks need ImageMagick (magick)")
     return
   end
 
@@ -310,6 +311,7 @@ return function(H)
   if made.code ~= 0 or not vim.uv.fs_stat(img) then
     -- ImageMagick without a usable font cannot render the sample; that is a
     -- property of the machine, not a failure of this module.
+    print("n/a  the recognition checks need an ImageMagick that can render text")
     return
   end
 
