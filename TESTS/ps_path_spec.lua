@@ -27,9 +27,24 @@ return function(H)
 
   local dir = vim.fn.tempname()
   vim.fn.mkdir(dir, "p")
+  -- Under WSL, powershell.exe is a Windows program: it reads a Linux path such as
+  -- `/home/u/.local/state/...` relative to its own working directory
+  -- (`\\wsl.localhost\<distro>\home\u\...`) and does not find it. `wslpath -w`
+  -- gives the UNC path it can open; on native Windows the path is used as is.
+  local ps_dir = dir
+  if vim.fn.has("wsl") == 1 then
+    local w = vim.system({ "wslpath", "-w", dir }, { text = true }):wait()
+    if w.code ~= 0 or vim.trim(w.stdout or "") == "" then
+      vim.fn.delete(dir, "rf")
+      print("n/a  under WSL the round trip needs wslpath -w for the temp directory: " .. tostring(w.stderr))
+      return
+    end
+    ps_dir = vim.trim(w.stdout)
+  end
+  local sep = ps_dir == dir and "/" or "\\"
   local target = dir .. "/" .. hostile .. ".txt"
   -- The ASCII quote, `;`, `$` and parentheses are legal in Windows file names.
-  local script = ("Set-Content -LiteralPath (%s) -Value ok"):format(ps_path.expr(target))
+  local script = ("Set-Content -LiteralPath (%s) -Value ok"):format(ps_path.expr(ps_dir .. sep .. hostile .. ".txt"))
   -- A cold powershell.exe on a GitHub Windows runner can take well over 30 s
   -- to start; the timeout only guards against a hang.
   local result = vim
@@ -45,7 +60,7 @@ return function(H)
   local save = table.concat({
     "Add-Type -AssemblyName System.Drawing;",
     "$img = New-Object System.Drawing.Bitmap 2,2;",
-    ("$img.Save(%s, [System.Drawing.Imaging.ImageFormat]::Png);"):format(ps_path.expr(png)),
+    ("$img.Save(%s, [System.Drawing.Imaging.ImageFormat]::Png);"):format(ps_path.expr(ps_dir .. sep .. hostile .. ".png")),
   }, " ")
   local saved = vim
     .system({ "powershell.exe", "-NoProfile", "-NonInteractive", "-STA", "-Command", save }, { text = true })
