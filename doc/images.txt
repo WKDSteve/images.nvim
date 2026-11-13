@@ -649,8 +649,11 @@ At startup the terminal is also asked its name with XTVERSION (`CSI > q`,
 `display.terminal_probe`, default `true`). Its reply arrives through
 |TermResponse| and, when it names a known terminal, overrides the environment:
 it holds over SSH and against variables inherited from another terminal.
-The whole name must match (`xterm.js` from VS Code is not XTerm); an
-unlisted name has no opinion and leaves the decision to the environment.
+Known by their reply as OSC 1337 terminals: WezTerm, iTerm2, Konsole,
+mintty, Rio and Warp. The whole name must match (`xterm.js` from VS Code is
+not XTerm); an unlisted name has no opinion and leaves the decision to the
+environment. Tabby and Hyper do not answer (their xterm.js predates
+XTVERSION) and are judged by the environment alone.
 Under tmux nothing is sent, because tmux would answer for itself; instead
 tmux is asked what the outer terminal answered it
 (`tmux display-message -p '#{client_termtype}'`), and `:Image check` says

@@ -67,8 +67,16 @@ end
 --- (lowercased). Exact, not a prefix: `xterm.js(5.3.0)` (VS Code and other
 --- Electron terminals) must not count as XTerm. Only terminals with evidence for OSC 1337 are marked
 --- `osc1337 = true`; an unlisted name has no opinion and leaves the decision
---- to the environment. Rio, Warp, Tabby and Hyper are deliberately absent:
---- neither their XTVERSION reply nor their OSC 1337 support is evidenced yet.
+--- to the environment.
+---
+--- Tabby and Hyper are deliberately absent (checked 2026-11-13): both are
+--- xterm.js terminals, and xterm.js answers XTVERSION only since
+--- xtermjs/xterm.js@d8a93b7 (2025-12-26), which is not in any release yet
+--- (Tabby pins `@xterm/xterm` 6.0.0, Hyper `xterm` 5.3.0 and is archived), so
+--- they stay silent. Once they answer, the reply is `xterm.js(<version>)` like
+--- VS Code's, which names the library rather than the terminal, and image
+--- support depends on whether the host loads `@xterm/addon-image` (Tabby only
+--- with its `terminal.sixel` setting), so even then the reply has no verdict.
 ---@type Images.XtversionEntry[]
 M.KNOWN = {
   {
@@ -87,8 +95,23 @@ M.KNOWN = {
     name = "Konsole",
     match = "konsole",
     osc1337 = true,
-    evidence = "already on the environment list (OSC 1337 since Konsole 22.04); "
-      .. "reply name NOT evidenced yet (assumed `Konsole <version>`, open follow-up)",
+    evidence = "source: `Vt102Emulation::reportVersion` sends `Konsole <KONSOLE_VERSION>` "
+      .. "(KDE/konsole@23a8c41); OSC 1337 inline images since Konsole 22.04",
+  },
+  {
+    name = "Rio",
+    match = "rio",
+    osc1337 = true,
+    evidence = "source: `report_version` sends `Rio <version>` (rio-vt/src/crosswords/mod.rs), "
+      .. "OSC 1337 File= in rio-vt/src/ansi/iterm2_image_protocol.rs (raphamorim/rio@72e0564)",
+  },
+  {
+    name = "Warp",
+    match = "warp",
+    osc1337 = true,
+    evidence = "source: `report_xtversion` sends `Warp(<version>)` "
+      .. "(crates/warp_terminal/src/model/grid/ansi_handler.rs), iTerm2 images also on the "
+      .. "alternate screen (app/src/terminal/model/alt_screen.rs) (warpdotdev/Warp@5558ba1)",
   },
   {
     name = "mintty",

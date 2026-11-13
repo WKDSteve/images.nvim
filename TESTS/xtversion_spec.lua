@@ -28,8 +28,23 @@ return function(H)
   a = xtversion.parse("\27P>|iTerm2 3.5.0")
   H.eq(a and a.terminal, "iTerm2", "iTerm2 matched")
 
-  a = xtversion.parse("\27P>|Rio 0.2.1")
-  H.eq(a and a.name, "Rio", "an unlisted terminal still parses")
+  -- Replies as the terminals' sources send them (see images.xtversion.KNOWN).
+  a = xtversion.parse("\27P>|Konsole 24.08.3\27\\")
+  H.eq(a and a.terminal, "Konsole", "Konsole matched")
+  H.eq(a and a.osc1337, true, "...which speaks OSC 1337")
+
+  a = xtversion.parse("\27P>|Rio 0.2.30\27\\")
+  H.eq(a and a.terminal, "Rio", "Rio matched")
+  H.eq(a and a.version, "0.2.30", "...version")
+  H.eq(a and a.osc1337, true, "...which speaks OSC 1337")
+
+  a = xtversion.parse("\27P>|Warp(v0.2025.06.03.09.49.stable_01)\27\\")
+  H.eq(a and a.terminal, "Warp", "Warp's `Warp(version)` matched")
+  H.eq(a and a.version, "v0.2025.06.03.09.49.stable_01", "...version without the parentheses")
+  H.eq(a and a.osc1337, true, "...which speaks OSC 1337")
+
+  a = xtversion.parse("\27P>|Contour 0.6.1")
+  H.eq(a and a.name, "Contour", "an unlisted terminal still parses")
   H.eq(a and a.terminal, nil, "...but is not matched")
   H.eq(a and a.osc1337, nil, "...and has no verdict")
 
@@ -287,14 +302,14 @@ return function(H)
   cap = stubbed_cap("\27P>|kitty(0.35.2)", { TERM = "xterm-kitty" })
   H.eq(cap.conflict, nil, "...also when TERM names kitty")
 
-  cap = stubbed_cap("\27P>|Rio 0.2.1", { WEZTERM_PANE = "0" })
+  cap = stubbed_cap("\27P>|Contour 0.6.1", { WEZTERM_PANE = "0" })
   H.eq(cap.source, "environment", "an unlisted reply has no opinion: the environment decides")
   H.ok(cap.ok, "...and stays ok")
-  H.eq(cap.reply, "Rio 0.2.1", "...the reply is still reported")
+  H.eq(cap.reply, "Contour 0.6.1", "...the reply is still reported")
 
-  cap = stubbed_cap("\27P>|Rio 0.2.1", nil)
+  cap = stubbed_cap("\27P>|Contour 0.6.1", nil)
   H.falsy(cap.ok, "unlisted reply, no variable: not recognised")
-  H.contains(cap.reason or "", "Rio", "...and the reason names what answered")
+  H.contains(cap.reason or "", "Contour", "...and the reason names what answered")
 
   -- ── describe: what `:Image check` and `:checkhealth` print ───────────────
   cap = stubbed_cap(WEZTERM, nil)
@@ -314,7 +329,7 @@ return function(H)
   H.contains(text, "tmux answered", "a tmux reply is named as tmux answering for itself")
   H.falsy(text:find("not on the list", 1, true), "...not as an unlisted terminal")
 
-  cap = stubbed_cap("\27P>|Rio 0.2.1", { WEZTERM_PANE = "0" })
+  cap = stubbed_cap("\27P>|Contour 0.6.1", { WEZTERM_PANE = "0" })
   text = terminal.describe(cap, xtversion.status())
   H.contains(text, "not on the list", "an unlisted reply is called unlisted")
 
@@ -326,7 +341,7 @@ return function(H)
   text = terminal.describe(cap, { state = "answered", answer = via })
   H.contains(text, "client_termtype", "a reply read through tmux names client_termtype as the source")
   H.contains(text, "WezTerm 20240203", "...with the reply text")
-  via = xtversion.parse("\27P>|Rio 0.2.1")
+  via = xtversion.parse("\27P>|Contour 0.6.1")
   via.via = "tmux"
   text = terminal.describe({ ok = false }, { state = "answered", answer = via })
   H.contains(text, "tmux reports the outer terminal", "an unlisted reply through tmux says tmux reported it")
