@@ -29,6 +29,19 @@ local function natural_less(a, b)
   return a < b
 end
 
+---Make the extension of a glob's last part match in any case: `*.png` becomes `*.[pP][nN][gG]`, so a glob finds
+---`Alpha1.PNG` on a case-sensitive file system (Linux) as it does on Windows and macOS. Only a plain extension of
+---letters is rewritten; one that already holds a pattern (`*.p?g`, `*.[pj]*`) is left as written.
+---@param pattern string
+---@return string
+function M.icase_extension(pattern)
+  return (pattern:gsub("%.(%a+)$", function(ext)
+    return "." .. ext:gsub("%a", function(c)
+      return "[" .. c:lower() .. c:upper() .. "]"
+    end)
+  end))
+end
+
 ---The image files `spec` names: every file of a directory, or every match of a glob (`**` recurses), kept when its
 ---extension is one of `extensions`, sorted naturally by full path.
 ---@param spec string a directory or a glob
@@ -53,7 +66,8 @@ function M.collect(spec, extensions)
       return dir .. "/" .. name
     end, vim.fn.readdir(dir))
   else
-    candidates = vim.fn.glob(expanded, false, true)
+    -- the extension filter below ignores case; the glob has to as well, or Linux drops `Alpha1.PNG` before it
+    candidates = vim.fn.glob(M.icase_extension(expanded), false, true)
   end
 
   local out = {}

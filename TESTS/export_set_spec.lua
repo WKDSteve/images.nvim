@@ -48,6 +48,13 @@ return function(H)
   H.falsy(set.is_set(""), "is_set: an empty string")
   H.falsy(set.is_set(base .. "/missing.png"), "is_set: a missing plain name is not a set")
 
+  -- ── icase_extension: pure, so it proves the Linux case on any system ─────
+  H.eq(set.icase_extension("/a/**/*.png"), "/a/**/*.[pP][nN][gG]", "icase_extension: the extension matches in any case")
+  H.eq(set.icase_extension("/a/page*.PNG"), "/a/page*.[pP][nN][gG]", "icase_extension: an upper-case extension too")
+  H.eq(set.icase_extension("/a/*.p?g"), "/a/*.p?g", "icase_extension: an extension with a pattern stays as written")
+  H.eq(set.icase_extension("/a/*"), "/a/*", "icase_extension: no extension, nothing to rewrite")
+  H.eq(set.icase_extension("/a.b/*"), "/a.b/*", "icase_extension: a dot in a folder name is not an extension")
+
   -- ── collect: directory ───────────────────────────────────────────────────
   H.eq(
     names(set.collect(base .. "/shots")),
