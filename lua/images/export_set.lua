@@ -35,11 +35,13 @@ end
 ---@param pattern string
 ---@return string
 function M.icase_extension(pattern)
-  return (pattern:gsub("%.(%a+)$", function(ext)
-    return "." .. ext:gsub("%a", function(c)
-      return "[" .. c:lower() .. c:upper() .. "]"
+  return (
+    pattern:gsub("%.(%a+)$", function(ext)
+      return "." .. ext:gsub("%a", function(c)
+        return "[" .. c:lower() .. c:upper() .. "]"
+      end)
     end)
-  end))
+  )
 end
 
 ---The image files `spec` names: every file of a directory, or every match of a glob (`**` recurses), kept when its
