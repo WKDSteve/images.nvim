@@ -34,6 +34,8 @@ return {
       "nvim",
       -- ps_path_spec.lua runs one real powershell.exe (skipped where absent) to prove a hostile path stays inside its string.
       "powershell",
+      -- ...and under WSL first asks wslpath for the Windows form of the temp path that powershell.exe can open.
+      "wslpath",
       -- pty_osc1337_spec.lua drives a real Neovim in tmux (WSL on Windows) to read the OSC 1337 bytes back.
       "wsl",
       "tmux",
