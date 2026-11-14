@@ -14,6 +14,7 @@
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
 ---@field menu? ImagesNvim.MenuConfig enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)
 ---@field integrations? ImagesNvim.IntegrationsConfig which hosts may drive this plugin (`ui_menu`)
+---@field tree? boolean|Images.Tree.Opts a badge on unreferenced images in a tree view (`images.integrations.tree`); false registers nothing
 ---@field pdf? ImagesNvim.PdfConfig PDF pages drawn as pictures, via pdfport.nvim (see images.pdf)
 
 ---Off switch for `images.integrations.menu`. images.nvim has no menu
@@ -154,6 +155,7 @@
 ---@field deps_popup? boolean show the one-off lib.nvim.deps popup on the first setup() after installation (default true; a no-op without lib.nvim.deps)
 ---@field menu?       ImagesNvim.MenuOpts enable/disable `images.integrations.menu` (its `ui.contextmenu` entries)
 ---@field integrations? ImagesNvim.IntegrationsOpts which hosts may drive this plugin (`ui_menu`)
+---@field tree? boolean|Images.Tree.Opts a badge on unreferenced images in a tree view (`images.integrations.tree`); false registers nothing
 ---@field pdf?        ImagesNvim.PdfOpts PDF pages drawn as pictures, via pdfport.nvim (see images.pdf)
 
 ---@class ImagesNvim.MenuOpts

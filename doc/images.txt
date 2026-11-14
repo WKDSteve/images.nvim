@@ -532,6 +532,7 @@ under the same key).
       menu = {
         enable = true,
       },
+      tree = true,
       integrations = {
         ui_menu = true,
       },
@@ -616,7 +617,12 @@ lib.nvim's deps module. `menu.enable` (default true) controls whether
 `images.integrations.menu` returns any right-click entries at all; without
 nvzone/menu installed it is inert either way. `integrations.ui_menu = false`
 keeps ui.nvim's right-click menu from composing the fly-out while other hosts
-still get `items()`.
+still get `items()`. `tree` (default true) registers the decorator `orphan` at
+lib.nvim's tree registry: a tree view that reads it (the own tree of
+filetree.nvim) marks every image in a paste folder that no document of the
+project links, and counts them on the folders. The project is scanned in the
+background and only while such a tree is open; `{ badge = "<text>" }` changes
+the badge text, `false` registers nothing.
 
 `display.zen` sizes the `:Image zen` window as a fraction (0-1) of the
 editor's width/height — that is the MAXIMUM box. The window actually opened

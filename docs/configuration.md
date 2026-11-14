@@ -28,6 +28,7 @@ its default the same way. Both are also kept for `:checkhealth images` — see
 - [export](#export)
 - [menu](#menu)
 - [integrations](#integrations)
+- [tree](#tree)
 - [keymaps](#keymaps)
 - [Statusline](#statusline)
 
@@ -109,6 +110,7 @@ require("images").setup({
   integrations = {
     ui_menu = true,
   },
+  tree = true,
   keymaps = {
     show = "<leader>im",
     gallery = "<leader>ig",
@@ -412,6 +414,17 @@ the vault task `images.nvim/sync-subprocess-timeouts`).
 | Key | Default | What it does |
 | --- | --- | --- |
 | `ui_menu` | `true` | Whether ui.nvim's right-click menu (`ui.menu`) composes the Images fly-out. `false` hides it there while `images.integrations.menu`'s `items()`/`submenu()` keep working for any other host. The module answers `enabled()` (`false` when this or `menu.enable` is off), which is what `ui.menu` asks first |
+
+## tree
+
+A badge in a tree view on every image no document refers to
+([FEATURES/INTEGRATIONS.md](FEATURES/INTEGRATIONS.md#a-badge-on-unreferenced-images-in-a-tree-view)).
+
+| Value | What it does |
+| --- | --- |
+| `true` (default) | Registers the decorator `orphan` at `lib.nvim.tree.registry`. Nothing is scanned until a tree that reads the registry (the own tree of filetree.nvim) shows the badges |
+| `{ badge = "<text>" }` | The same with another badge text (default `orphan`) |
+| `false` | Registers nothing |
 
 ## keymaps
 

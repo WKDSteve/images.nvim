@@ -857,6 +857,17 @@ function M.setup(opts)
   require("images.bindings.keymaps").register(conf)
   require("images.bindings.autocmds").register(conf)
 
+  -- A badge on unreferenced images in a tree view: one entry at lib.nvim's registry, read by
+  -- filetree.nvim's own tree when there is one. Registering scans nothing; `tree = false` leaves it out.
+  pcall(function()
+    local integration = require("images.integrations.tree")
+    if conf.tree == false then
+      integration.unregister()
+    else
+      integration.register(type(conf.tree) == "table" and conf.tree or nil)
+    end
+  end)
+
   -- Adopt `display.cell_aspect`, so the draw box sits tightly around the image
   -- rather than around the 0.5 assumption. Configured, not measured — why
   -- measuring is impossible from inside Neovim is explained in images.cell.

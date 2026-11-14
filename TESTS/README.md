@@ -89,6 +89,8 @@ Everything else with real branching logic has an assertion-based spec.
 | `integrations/picker.lua` | `picker_integration_spec.lua` | Item shaping |
 | `ocr.lua` | `ocr_spec.lua` | Binary discovery, language parsing |
 | `orphans.lua` | `orphans_spec.lua` | Orphan detection |
+| `orphan_index.lua`, `integrations/tree.lua` | `orphan_tree_spec.lua` | Unreferenced images of a whole project (what counts, a partial walk names nothing, the scan in slices) and the decorator `orphan` at lib.nvim's tree registry: no scan before a tree subscribes, `get` with every way to the disk closed, rescans after a written document and a file operation |
+| the own tree of filetree.nvim | `tree_drive.lua` (a hand run, not in the suite) | `FILETREE_NVIM_DIR=<checkout> nvim --clean --headless -u NONE -l TESTS/tree_drive.lua`: the orphan badge in the real tree, and that `<Tab>`, `<CR>` and the menu entries "Image info" / "OCR" of an image node reach images.nvim with the node's path. filetree.nvim is no dependency, so its checkout never decides about this suite |
 | `paste.lua` | `paste_target_spec.lua` | Filename sanitising and target-path resolution |
 | `pdf.lua` | `pdf_spec.lua` | Page/DPI config reading |
 | `pixels.lua` | `pixels_spec.lua` | Raw pixel sampling arithmetic |

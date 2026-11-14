@@ -385,6 +385,12 @@ return {
     ui_menu = true,
   },
 
+  -- A badge in a tree view on every image no document refers to (the decorator `orphan` at
+  -- lib.nvim.tree.registry, read by the own tree of filetree.nvim; images.integrations.tree).
+  -- true: registered; { badge = "<text>" }: with another badge text; false: not registered.
+  -- The project is scanned in the background, and only while a tree shows the badges.
+  tree = true,
+
   keymaps = {
     show = "<leader>im",
     gallery = "<leader>ig",

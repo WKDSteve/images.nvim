@@ -12,6 +12,7 @@ tools.
   - [pickers.nvim image and PDF previews](#pickersnvim-image-and-pdf-previews)
     - [A PDF is one of ours too](#a-pdf-is-one-of-ours-too)
   - [filetree.nvim and open.nvim](#filetreenvim-and-opennvim)
+  - [A badge on unreferenced images in a tree view](#a-badge-on-unreferenced-images-in-a-tree-view)
   - [pdfport.nvim, in both directions](#pdfportnvim-in-both-directions)
   - [language.nvim after OCR — an integration with no code in it](#languagenvim-after-ocr--an-integration-with-no-code-in-it)
   - [lib.nvim.deps: missing-tool reporting](#libnvimdeps-missing-tool-reporting)
@@ -242,6 +243,54 @@ feature, and `open.nvim` routes `:Open image` here.
 
 - **Module:** `images/init.lua` (`draw`) — the entry point both call
 - **Dependency:** none here; the relationship runs from those plugins to this one
+
+On filetree.nvim's own tree (`adapter = "native"`) an image node reaches images.nvim four ways: the
+preview key hands it to `show`, `<CR>` opens `zen` at the size of filetree's `image.float`, and the
+context menu carries "Image info" and "OCR (recognise text)". `TESTS/tree_drive.lua` presses all four in
+the real tree (a hand run, see [TESTS/README.md](../../TESTS/README.md)).
+
+---
+
+## A badge on unreferenced images in a tree view
+
+An image that lies in a paste folder and is linked from no document of the project carries the badge
+`orphan` in the tree, and a folder shows how many such images lie below it. It is what `:Image orphans`
+finds for one document, shown for the whole project where the files are.
+
+```mermaid
+flowchart LR
+  T["tree view opens"] -->|subscribe| I["integrations/tree.lua"]
+  W["document or image written<br/>file operation, :cd"] -->|a moment later| I
+  I -->|"scan in slices"| S["orphan_index.lua<br/>documents, their links,<br/>images in paste folders"]
+  S -->|"paths that changed"| I
+  I -->|emit| T
+  T -->|"get(path): a table lookup"| I
+```
+
+What counts:
+
+- A **document** is a Markdown or HTML file (`.md`, `.markdown`, `.mdx`, `.qmd`, `.rmd`, `.html`, `.htm`).
+- A **paste folder** is `<folder of a document>/<paste.dir>` (the folder itself when `paste.dir` is
+  empty). Only images directly in a paste folder are judged: an icon somewhere else that the code loads
+  is unlinked for a good reason.
+- An image is **referred to** when any document below the working directory links it: `![alt](target)`,
+  `[text](target)`, a reference definition `[label]: target`, `<img src="target">`, relative to the
+  document, absolute, or from the root (`/docs/a.png`); or embeds it the Obsidian way (`![[name.png]]`,
+  which names a file wherever it lies). Every doubt goes one way: a link that might mean an image
+  counts, because a badge on an image that is in use would invite deleting it.
+
+The tree asks for a badge while it draws a line, so that answer is a table lookup. The table is filled by
+a scan of the working directory that runs in the background, in slices of a few milliseconds, and only
+while a tree shows the badges: when the tree opens, a moment after a document or an image was written,
+after a file operation of the tree, and after `:cd`. `require("images.integrations.tree").rescan()` starts
+one by hand. Folders whose name starts with a dot, `node_modules`, `target`, `dist` and `build` are not
+entered, and the home folder or the top of a drive is not scanned at all. A walk that is cut short (more than 50,000 entries, or a document over 2 MiB) names **no** orphan
+at all: a link it did not read would make an image look unlinked.
+
+- **Module:** `images/integrations/tree.lua` (the decorator `orphan`), `images/orphan_index.lua` (the scan)
+- **Config:** `tree = true | { badge = "<text>" } | false` ([configuration.md](../configuration.md#tree))
+- **Dependency:** `lib.nvim.tree.registry` (soft: without it nothing is registered) and a tree that reads
+  it, today the own tree of filetree.nvim. Without one the entry is never looked at and nothing is scanned
 
 ---
 
