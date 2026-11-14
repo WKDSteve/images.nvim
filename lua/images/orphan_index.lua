@@ -21,7 +21,9 @@
 --- The walk reads folders and documents with the synchronous calls, in slices: after `SLICE_MS` it
 --- hands the editor back and goes on a moment later, so a large project costs many short steps and no
 --- long one. A walk that hits `MAX_ENTRIES` did not see every document and therefore names no orphan
---- at all (`partial`), because a link it did not read would make an image look unlinked.
+--- at all (`partial`), because a link it did not read would make an image look unlinked. What a
+--- document links is kept by its size and time, so the scan after one written document reads that
+--- one document and asks the others only whether they changed.
 ---
 --- Not its job: drawing, deleting, deciding when to scan (`images.integrations.tree`).
 
@@ -50,7 +52,7 @@ M.SLICE_MS = 8
 ---@field orphans table<string, true> The unreferenced images, by path (`/`, drive letter upper case).
 ---@field partial boolean             The walk was cut short: `orphans` is empty on purpose.
 ---@field images integer              Images in paste folders that were judged.
----@field docs integer                Documents that were read.
+---@field docs integer                Documents whose links were taken (from disk or from the cache).
 
 ---One spelling for a path, the one a tree view uses for its keys: `/`-separated, the drive letter in
 ---upper case, no trailing slash.
@@ -163,16 +165,57 @@ function M.targets_in_line(line)
   return out
 end
 
+---What a document links, kept between scans: a scan after one written document then reads that one
+---document again and only asks the others for their size and time.
+---@class Images.OrphanIndex.DocLinks
+---@field size integer
+---@field sec integer
+---@field nsec integer
+---@field paths string[]  the files it links (keys as `same_file_key` makes them)
+---@field names string[]  the file names it embeds the Obsidian way, lower case
+
+---@type { root: string|nil, docs: table<string, Images.OrphanIndex.DocLinks> }
+local cache = { root = nil, docs = {} }
+
+---How many documents the scans read from disk so far (specs: a scan of an unchanged project reads none).
+M.stats = { docs_read = 0 }
+
+---Forget what the documents linked (a changed `paste.dir` or root needs no call: the links of a
+---document do not depend on the first, and the second empties the cache by itself).
+function M.clear_cache()
+  cache = { root = nil, docs = {} }
+end
+
+---The links of the document at `path`, from the cache when the file is as large and as old as it was.
 ---@param path string
----@return string|nil text
-local function read_file(path)
+---@param doc_dir string
+---@param root string
+---@return Images.OrphanIndex.DocLinks|nil links  nil: too large or unreadable
+local function doc_links(path, doc_dir, root)
   local st = uv.fs_stat(path)
   if not st or st.size > M.MAX_DOC_BYTES then return nil end
+  local known = cache.docs[path]
+  if known and known.size == st.size and known.sec == st.mtime.sec and known.nsec == st.mtime.nsec then return known end
   local fd = uv.fs_open(path, "r", 292)
   if not fd then return nil end
   local text = uv.fs_read(fd, st.size, 0)
   uv.fs_close(fd)
-  return type(text) == "string" and text or nil
+  if type(text) ~= "string" then return nil end
+  M.stats.docs_read = M.stats.docs_read + 1
+  ---@type Images.OrphanIndex.DocLinks
+  local links = { size = st.size, sec = st.mtime.sec, nsec = st.mtime.nsec, paths = {}, names = {} }
+  for line in text:gmatch("[^\r\n]+") do
+    for _, target in ipairs(M.targets_in_line(line)) do
+      local file, from_root = M.target_path(target, doc_dir, root)
+      if file then links.paths[#links.paths + 1] = same_file_key(file) end
+      if from_root then links.paths[#links.paths + 1] = same_file_key(from_root) end
+    end
+    for _, name in ipairs(M.wiki_names_in_line(line)) do
+      links.names[#links.names + 1] = name:lower()
+    end
+  end
+  cache.docs[path] = links
+  return links
 end
 
 ---The scan as a coroutine body: `pause()` is called between steps and may yield.
@@ -220,29 +263,35 @@ local function run(root, pause)
     pause()
   end
 
+  -- a link from the root (`/docs/a.png`) is resolved against it: another root, other links
+  if cache.root ~= root then cache = { root = root, docs = {} } end
   local referenced, referenced_names, paste_dirs, read = {}, {}, {}, 0
+  local seen = {}
   if not partial then
     for _, doc in ipairs(docs) do
       local doc_dir = doc:match("^(.*)/[^/]+$") or root
       paste_dirs[sub ~= "" and M.collapse(doc_dir .. "/" .. sub) or doc_dir] = true
-      local text = read_file(doc)
-      if not text then
+      local links = doc_links(doc, doc_dir, root)
+      if not links then
         -- too large or unreadable: its links are unknown
         partial = true
         break
       end
+      seen[doc] = true
       read = read + 1
-      for line in text:gmatch("[^\r\n]+") do
-        for _, target in ipairs(M.targets_in_line(line)) do
-          local path, from_root = M.target_path(target, doc_dir, root)
-          if path then referenced[same_file_key(path)] = true end
-          if from_root then referenced[same_file_key(from_root)] = true end
-        end
-        for _, name in ipairs(M.wiki_names_in_line(line)) do
-          referenced_names[name:lower()] = true
-        end
+      for _, path in ipairs(links.paths) do
+        referenced[path] = true
+      end
+      for _, name in ipairs(links.names) do
+        referenced_names[name] = true
       end
       pause()
+    end
+  end
+  if not partial then
+    -- documents that are gone leave the cache
+    for doc in pairs(cache.docs) do
+      if not seen[doc] then cache.docs[doc] = nil end
     end
   end
 

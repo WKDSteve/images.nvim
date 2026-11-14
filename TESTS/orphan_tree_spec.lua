@@ -99,6 +99,23 @@ return function(H)
   H.eq(path, "/img/a.png")
   H.eq(from_root, "/p/img/a.png", "a leading slash is also read from the root")
 
+  -- a second scan reads no document again; a written one is read, and only that one
+  local read_before = index.stats.docs_read
+  H.eq(rels(index.scan_sync(root).orphans), "assets/b.png\nsub/assets/f.png", "the same answer from the cache")
+  H.eq(index.stats.docs_read, read_before, "an unchanged project costs no document read")
+  write("wiki/page.md", "![[w.png]] and [[sub/assets/v.png|x]] and now ![[f.png]] as well\n")
+  H.eq(rels(index.scan_sync(root).orphans), "assets/b.png", "a written document is read again")
+  H.eq(index.stats.docs_read, read_before + 1, "... and only that one")
+  write("wiki/page.md", "![[w.png]] and [[sub/assets/v.png|with a path and an alias]]\n")
+  vim.uv.fs_unlink(root .. "/sub/note.md")
+  H.eq(
+    rels(index.scan_sync(root).orphans),
+    "assets/b.png\nassets/e.png",
+    "a deleted document takes its links along, cache or not (and sub/assets is no paste folder without it)"
+  )
+  write("sub/note.md", "![up](../assets/e.png)\n[plain link](assets/g.png)\n![ref][pic]\n\n[pic]: assets/h.png 'a title'\n")
+  H.eq(rels(index.scan_sync(root).orphans), "assets/b.png\nsub/assets/f.png", "fixture: as before")
+
   -- a walk that was cut short names nothing: an unread link would make an image look unlinked
   local max_entries = index.MAX_ENTRIES
   index.MAX_ENTRIES = 3
