@@ -388,7 +388,9 @@ return {
   -- A badge in a tree view on every image no document refers to (the decorator `orphan` at
   -- lib.nvim.tree.registry, read by the own tree of filetree.nvim; images.integrations.tree).
   -- true: registered; { badge = "<text>" }: with another badge text; false: not registered.
-  -- The project is scanned in the background, and only while a tree shows the badges.
+  -- Two actions come with it, in the menu of the tree: delete an unreferenced image, and look again.
+  -- { actions = false } leaves them out, { keys = { delete = "<lhs>", rescan = "<lhs>" } } gives one a key.
+  -- The root the tree shows is scanned in the background, and only while a tree shows the badges.
   tree = true,
 
   keymaps = {

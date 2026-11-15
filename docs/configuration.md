@@ -424,6 +424,8 @@ A badge in a tree view on every image no document refers to
 | --- | --- |
 | `true` (default) | Registers the decorator `orphan` at `lib.nvim.tree.registry`. Nothing is scanned until a tree that reads the registry (the own tree of filetree.nvim) shows the badges |
 | `{ badge = "<text>" }` | The same with another badge text (default `orphan`) |
+| `{ actions = false }` | The badge without the two actions of the tree ("Delete this unreferenced image", "Look for unreferenced images again") |
+| `{ keys = { delete = "<lhs>", rescan = "<lhs>" } }` | A key in the tree for an action. Without one the action is in the menu of the tree only (the default) |
 | `false` | Registers nothing |
 
 ## keymaps

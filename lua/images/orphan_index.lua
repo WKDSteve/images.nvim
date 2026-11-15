@@ -174,27 +174,36 @@ end
 ---@field paths string[]  the files it links (keys as `same_file_key` makes them)
 ---@field names string[]  the file names it embeds the Obsidian way, lower case
 
----@type { root: string|nil, docs: table<string, Images.OrphanIndex.DocLinks> }
-local cache = { root = nil, docs = {} }
+---Per scanned root: a link from the root (`/docs/a.png`) is resolved against it, so the links of one
+---document are another list below another root. A tree view scans one root per tree it shows.
+---@type table<string, table<string, Images.OrphanIndex.DocLinks>>  root -> document -> its links
+local caches = {}
 
 ---How many documents the scans read from disk so far (specs: a scan of an unchanged project reads none).
 M.stats = { docs_read = 0 }
 
----Forget what the documents linked (a changed `paste.dir` or root needs no call: the links of a
----document do not depend on the first, and the second empties the cache by itself).
-function M.clear_cache()
-  cache = { root = nil, docs = {} }
+---Forget what the documents linked: below `root`, or below every root without one. A changed
+---`paste.dir` needs no call (the links of a document do not depend on it); a reader that stops
+---scanning a root calls it so that the links of that project are not kept for good.
+---@param root? string
+function M.clear_cache(root)
+  if root == nil then
+    caches = {}
+  else
+    caches[M.norm(root)] = nil
+  end
 end
 
 ---The links of the document at `path`, from the cache when the file is as large and as old as it was.
 ---@param path string
 ---@param doc_dir string
 ---@param root string
+---@param cache table<string, Images.OrphanIndex.DocLinks>  the documents of this root
 ---@return Images.OrphanIndex.DocLinks|nil links  nil: too large or unreadable
-local function doc_links(path, doc_dir, root)
+local function doc_links(path, doc_dir, root, cache)
   local st = uv.fs_stat(path)
   if not st or st.size > M.MAX_DOC_BYTES then return nil end
-  local known = cache.docs[path]
+  local known = cache[path]
   if known and known.size == st.size and known.sec == st.mtime.sec and known.nsec == st.mtime.nsec then return known end
   local fd = uv.fs_open(path, "r", 292)
   if not fd then return nil end
@@ -214,7 +223,7 @@ local function doc_links(path, doc_dir, root)
       links.names[#links.names + 1] = name:lower()
     end
   end
-  cache.docs[path] = links
+  cache[path] = links
   return links
 end
 
@@ -263,15 +272,15 @@ local function run(root, pause)
     pause()
   end
 
-  -- a link from the root (`/docs/a.png`) is resolved against it: another root, other links
-  if cache.root ~= root then cache = { root = root, docs = {} } end
+  local cache = caches[root] or {}
+  caches[root] = cache
   local referenced, referenced_names, paste_dirs, read = {}, {}, {}, 0
   local seen = {}
   if not partial then
     for _, doc in ipairs(docs) do
       local doc_dir = doc:match("^(.*)/[^/]+$") or root
       paste_dirs[sub ~= "" and M.collapse(doc_dir .. "/" .. sub) or doc_dir] = true
-      local links = doc_links(doc, doc_dir, root)
+      local links = doc_links(doc, doc_dir, root, cache)
       if not links then
         -- too large or unreadable: its links are unknown
         partial = true
@@ -290,8 +299,8 @@ local function run(root, pause)
   end
   if not partial then
     -- documents that are gone leave the cache
-    for doc in pairs(cache.docs) do
-      if not seen[doc] then cache.docs[doc] = nil end
+    for doc in pairs(cache) do
+      if not seen[doc] then cache[doc] = nil end
     end
   end
 

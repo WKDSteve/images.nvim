@@ -282,7 +282,277 @@ return function(H)
   config.setup(nil)
   H.eq(config.get().tree, true, "on by default")
 
+  -- ── the roots of the trees ────────────────────────────────────────────────
+  -- A second project, which is not the working directory (that is still `root`, with the orphan
+  -- assets/new.png from above).
+  local other = vim.fn.tempname()
+  vim.fn.mkdir(other .. "/assets", "p")
+  other = index.norm(vim.uv.fs_realpath(other) or other)
+  vim.fn.writefile({ "![a](assets/a.png)" }, other .. "/doc.md")
+  vim.fn.writefile({ "x" }, other .. "/assets/a.png")
+  vim.fn.writefile({ "x" }, other .. "/assets/lost.png")
+
+  ---@param set table<string, any>
+  ---@return string  the keys, sorted, one per line
+  local function keys_of(set)
+    local out = vim.tbl_keys(set)
+    table.sort(out)
+    return table.concat(out, "\n")
+  end
+  local function roots_changed()
+    vim.api.nvim_exec_autocmds("User", { pattern = "FiletreeRoots", modeline = false })
+  end
+
+  H.ok(tree.register())
+  decorator = registry.get("decorator", tree.NAME)
+  local shown = { other }
+  emitted = {}
+  local unsubscribe3 = decorator.subscribe(function(keys)
+    emitted[#emitted + 1] = keys or "all"
+  end, {
+    roots = function()
+      return shown
+    end,
+  })
+  H.ok(
+    vim.wait(5000, function()
+      return #emitted > 0
+    end, 5),
+    "the scan of the root of the tree reports"
+  )
+  H.eq(keys_of(decorator.all()), other .. "/assets/lost.png", "the root the tree shows is scanned, not the working directory")
+  H.eq(tree.last_scan(root), nil, "the working directory was not walked")
+  H.eq(table.concat(tree.roots(), "\n"), other)
+
+  -- a second tree on another root: that one is scanned, the first is left alone
+  local scan_other = tree.last_scan(other)
+  shown = { other, root }
+  roots_changed()
+  H.ok(
+    vim.wait(5000, function()
+      return decorator.get(root .. "/assets/new.png") ~= nil
+    end, 5),
+    "a root that is new is scanned"
+  )
+  H.ok(tree.last_scan(other) == scan_other, "the root that stayed was not scanned again")
+  H.ok(decorator.get(other .. "/assets/lost.png"), "and keeps its badge")
+
+  -- `:cd` is nothing to a tree that says which roots it shows
+  local scan_root = tree.last_scan(root)
+  vim.api.nvim_exec_autocmds("DirChanged", { pattern = "global", modeline = false })
+  vim.wait(100, function()
+    return tree.last_scan(root) ~= scan_root
+  end, 5)
+  H.ok(tree.last_scan(root) == scan_root, "DirChanged scans nothing while every tree names its roots")
+
+  -- the tree of the second project is given up: its badges go, and its scan is forgotten
+  emitted = {}
+  shown = { root }
+  roots_changed()
+  H.eq(table.concat(emitted[1] or {}, "\n"), other .. "/assets/lost.png", "the badge below a root no tree shows goes at once")
+  H.eq(tree.last_scan(other), nil)
+
+  -- two roots, one below the other: sub/ alone has no document that embeds w.png and v.png (wiki/page.md
+  -- does, outside of it), so its scan names them; the scan of the project knows better, and wins
+  shown = { root, root .. "/sub" }
+  roots_changed()
+  H.ok(
+    vim.wait(5000, function()
+      return tree.last_scan(root .. "/sub") ~= nil
+    end, 5),
+    "the root below is scanned"
+  )
+  H.ok(
+    tree.last_scan(root .. "/sub").orphans[root .. "/sub/assets/w.png"],
+    "fixture: on its own the folder calls the image unreferenced"
+  )
+  H.eq(decorator.get(root .. "/sub/assets/w.png"), nil, "an image the wider root knows a link to carries no badge")
+  H.eq(keys_of(decorator.all()), root .. "/assets/new.png")
+  shown = { root }
+  roots_changed()
+
+  -- a tree that hands no context stands for the working directory
+  unsubscribe3()
+  emitted = {}
+  local unsubscribe4 = decorator.subscribe(function(keys)
+    emitted[#emitted + 1] = keys or "all"
+  end)
+  local roots, by_cwd = tree.roots()
+  H.eq(table.concat(roots, "\n"), root, "without a context: the working directory")
+  H.eq(by_cwd, true)
+  H.ok(vim.wait(5000, function()
+    return decorator.get(root .. "/assets/new.png") ~= nil
+  end, 5))
+  unsubscribe4()
+
+  -- ── the two actions ───────────────────────────────────────────────────────
+  local delete = registry.get("action", tree.DELETE)
+  local again = registry.get("action", tree.RESCAN)
+  H.ok(delete and again, "both actions are at the registry")
+  H.eq(delete.key, nil, "no key unless one is configured: the menu of the tree has them")
+  H.eq(delete.mutates, true)
+  H.eq(again.mutates, false)
+  H.eq(table.concat(delete.needs, ","), "file")
+  H.eq(table.concat(again.needs, ","), "dir")
+
+  shown = { root }
+  local unsubscribe5 = decorator.subscribe(function(keys)
+    emitted[#emitted + 1] = keys or "all"
+  end, {
+    roots = function()
+      return shown
+    end,
+  })
+  H.ok(vim.wait(5000, function()
+    return decorator.get(root .. "/assets/new.png") ~= nil
+  end, 5))
+  write("assets/second.png")
+  write("assets/third.png")
+  tree.rescan()
+  H.ok(vim.wait(5000, function()
+    return decorator.get(root .. "/assets/third.png") ~= nil
+  end, 5))
+
+  H.ok(delete.when({ path = root .. "/assets/new.png" }), "delete applies to an image with the badge")
+  H.falsy(delete.when({ path = root .. "/assets/a.png" }), "not to a linked one")
+  H.falsy(delete.when({ path = root .. "/doc.md" }), "nor to a document")
+  H.falsy(delete.when({}), "nor to a node without a path")
+
+  -- no tree with a trash here: one question of its own, and "no" deletes nothing
+  local confirm, notify = vim.fn.confirm, vim.notify
+  local asked, said = {}, {}
+  local answer = 2
+  vim.fn.confirm = function(question)
+    asked[#asked + 1] = question
+    return answer
+  end
+  vim.notify = function(message, level)
+    said[#said + 1] = { message = message, level = level }
+  end
+  delete.run({ { path = root .. "/assets/new.png" } })
+  H.eq(#asked, 1, "it asks")
+  H.contains(asked[1], "new.png")
+  H.ok(vim.uv.fs_stat(root .. "/assets/new.png"), "cancel: the image stays")
+  H.ok(decorator.get(root .. "/assets/new.png"), "and its badge")
+
+  -- yes: the file goes, the badge goes with it, and no scan was needed for that
+  answer = 1
+  emitted = {}
+  local scan_before = tree.last_scan(root)
+  local changed_fired = 0
+  local changed_id = vim.api.nvim_create_autocmd("User", {
+    pattern = "FileopsChanged",
+    callback = function()
+      changed_fired = changed_fired + 1
+    end,
+  })
+  delete.run({ { path = root .. "/assets/new.png" }, { path = root .. "/assets/a.png" }, { path = root .. "/doc.md" } })
+  H.eq(vim.uv.fs_stat(root .. "/assets/new.png"), nil, "the unreferenced image is deleted")
+  H.ok(vim.uv.fs_stat(root .. "/assets/a.png"), "a linked image in the selection is left alone")
+  H.ok(vim.uv.fs_stat(root .. "/doc.md"), "and so is a document")
+  H.eq(decorator.get(root .. "/assets/new.png"), nil, "the badge is gone at once")
+  H.eq(table.concat(emitted[1], "\n"), root .. "/assets/new.png", "only its key is named")
+  H.ok(tree.last_scan(root) == scan_before, "without a scan of the project")
+  H.eq(changed_fired, 1, "a tree is told that a file went")
+  vim.api.nvim_del_autocmd(changed_id)
+  -- that event starts a scan a moment later: let it end before the next case
+  vim.wait(5000, function()
+    return tree.last_scan(root) ~= scan_before
+  end, 5)
+
+  -- an image that was linked since the last scan is judged again right before, and stays
+  asked, said = {}, {}
+  write("late.md", "![s](assets/second.png)\n")
+  H.ok(decorator.get(root .. "/assets/second.png"), "fixture: the table still calls it unreferenced")
+  delete.run({ { path = root .. "/assets/second.png" } })
+  H.eq(#asked, 0, "nothing is asked")
+  H.ok(vim.uv.fs_stat(root .. "/assets/second.png"), "an image a document links by now is not deleted")
+  H.eq(#said, 1)
+  H.contains(said[1].message, "linked by now")
+  H.eq(said[1].level, vim.log.levels.WARN)
+  H.ok(
+    vim.wait(5000, function()
+      return decorator.get(root .. "/assets/second.png") == nil
+    end, 5),
+    "and the table is brought up to date"
+  )
+
+  -- with a tree that has a trash: the tree asks and deletes, images.nvim asks nothing
+  asked, said = {}, {}
+  local handed = {}
+  local trash_ok = false
+  local third = root .. "/assets/third.png"
+  local restore_filetree = package.loaded["filetree"]
+  package.loaded["filetree"] = {
+    feature = function(name)
+      if name ~= "trash" then return nil end
+      return {
+        available = function()
+          return true
+        end,
+        -- what the delete key of the tree does: it asks, trashes, and says that files changed
+        delete_current = function(opts)
+          handed[#handed + 1] = table.concat(opts.paths, ",")
+          if not trash_ok then return end
+          for _, image in ipairs(opts.paths) do
+            vim.uv.fs_unlink(image)
+          end
+          vim.api.nvim_exec_autocmds("User", { pattern = "FiletreeChanged", modeline = false })
+        end,
+      }
+    end,
+  }
+  delete.run({ { path = third }, { path = root .. "/assets/a.png" } })
+  H.eq(table.concat(handed, "\n"), third, "the trash of the tree is handed the unreferenced image, and only that")
+  H.eq(#asked, 0, "the tree asks in its own words")
+  H.ok(decorator.get(third), "a delete the tree did not do (the person said no) keeps the badge")
+  trash_ok = true
+  emitted = {}
+  local scan_then = tree.last_scan(root)
+  delete.run({ { path = third } })
+  H.eq(vim.uv.fs_stat(third), nil, "fixture: the tree trashed it")
+  H.eq(decorator.get(third), nil, "the badge goes when the tree says that files changed")
+  H.eq(table.concat(emitted[1], "\n"), third, "only its key is named")
+  H.ok(tree.last_scan(root) == scan_then, "before any scan of the project")
+  package.loaded["filetree"] = restore_filetree
+  -- that event starts a scan a moment later: let it end before the next case
+  vim.wait(5000, function()
+    return tree.last_scan(root) ~= scan_then
+  end, 5)
+
+  -- "look again" on a folder: a scan, and one line that says what there is
+  said = {}
+  write("assets/fourth.png")
+  again.run({ { path = root .. "/assets" } })
+  H.ok(
+    vim.wait(5000, function()
+      return #said > 0
+    end, 5),
+    "the action reports when the scan is through"
+  )
+  H.contains(said[1].message, "1 unreferenced image")
+  H.ok(decorator.get(root .. "/assets/fourth.png"), "and the new one has its badge")
+  unsubscribe5()
+  said = {}
+  again.run({})
+  H.contains(said[1].message, "no tree shows the badges")
+  vim.fn.confirm, vim.notify = confirm, notify
+
+  -- keys, and no actions at all
+  H.ok(tree.register({ keys = { delete = "gD" } }))
+  H.eq(registry.get("action", tree.DELETE).key, "gD", "a configured key")
+  H.eq(registry.get("action", tree.RESCAN).key, nil)
+  H.ok(tree.register({ actions = false }))
+  H.eq(registry.get("action", tree.DELETE), nil, "actions = false: only the badge")
+  H.ok(registry.get("decorator", tree.NAME))
+  tree.unregister()
+  H.eq(registry.get("action", tree.RESCAN), nil, "unregister takes the actions out")
+  config.setup({ tree = { actions = false, keys = { delete = "gD", rescan = { "gR" } } } })
+  H.eq(#config.issues(), 0, "the options are known: " .. table.concat(config.issues(), "; "))
+  config.setup(nil)
+
   tree.DEBOUNCE_MS = 400
   vim.cmd.cd(cwd)
   vim.fn.delete(root, "rf")
+  vim.fn.delete(other, "rf")
 end

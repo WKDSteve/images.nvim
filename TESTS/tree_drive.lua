@@ -43,6 +43,7 @@ local PNG = "\137PNG\r\n\26\n\0\0\0\rIHDR\0\0\0\1\0\0\0\1\8\6\0\0\0\31\21\196\13
 
 local images
 local calls = {}
+local bin
 local T = dofile(filetree .. "/TESTS/native_drive.lua")({
   name = "tree_drive (images.nvim)",
   files = { "README.md", "docs/guide.md", "docs/assets/a.png", "docs/assets/b.png", "lua/init.lua" },
@@ -54,6 +55,28 @@ local T = dofile(filetree .. "/TESTS/native_drive.lua")({
       fd:close()
     end
     T.mkfile("docs/guide.md", { "# Guide", "", "![a](assets/a.png)" })
+    -- The trash of the operating system, replaced by a folder next to the project (as filetree.nvim's
+    -- own drive does): what the tree does around the one external call is the real code.
+    bin = T.dir .. "_bin"
+    vim.fn.mkdir(bin, "p")
+    local platform = require("filetree.features.fileops.trash.platform")
+    local function send(path)
+      local moved = vim.uv.fs_rename(path, bin .. "/" .. vim.fn.fnamemodify(path, ":t"))
+      return { ok = moved == true, err = moved and nil or "could not move" }
+    end
+    platform.available = function()
+      return true
+    end
+    platform.send = function(path, cb)
+      vim.schedule(function()
+        cb(send(path))
+      end)
+    end
+    platform.send_batch = function(paths, cb)
+      vim.schedule(function()
+        cb(vim.tbl_map(send, paths))
+      end)
+    end
     images = require("images")
     images.setup({ deps_popup = false, display = { terminal_probe = false } })
     for _, fn in ipairs({ "show", "zen", "info", "ocr" }) do
@@ -182,6 +205,79 @@ T.ok("the menu of another file is open", (menu_entry("Markdown link")) ~= nil)
 T.eq("... without the image entries", (menu_entry("Image info")), nil)
 T.close_floats()
 
+-- ── the two actions about unreferenced images ───────────────────────────────
+local registry_ok, registry = pcall(require, "lib.nvim.tree.registry")
+if not (registry_ok and registry.get("action", "images.orphan.delete")) then
+  T.na("this lib.nvim registers no actions: the two actions were not run")
+else
+  -- a new image nobody links, written past the editor: the tree shows the file, the badge needs a scan
+  local fd = assert(io.open(dir .. "/docs/assets/c.png", "wb"))
+  fd:write(PNG)
+  fd:close()
+  T.wait(function()
+    return T.adapter.get_node_line(dir .. "/docs/assets/c.png") ~= nil
+  end, 5000)
+  mark = T.mark()
+  T.ok("the menu of a folder offers to look again", pick("docs/assets", "Look for unreferenced images again"))
+  -- the entry runs a moment after it was picked: wait for what it says before the menu is put away
+  T.ok(
+    "... and one line says how many there are",
+    T.wait(function()
+      return T.told("2 unreferenced images", mark)
+    end, 5000)
+  )
+  T.close_floats()
+  T.on("docs/assets/c.png")
+  T.ok(
+    "... and the new image gets its badge",
+    T.wait(function()
+      return T.drawn("docs/assets/c.png").text:find("orphan", 1, true) ~= nil
+    end, 5000)
+  )
+
+  -- the linked image has no such entry
+  T.tree()
+  pointer(tree_win, T.adapter.get_node_line(T.on("docs/assets/a.png")))
+  T.feed("<RightMouse>")
+  T.ok("fixture: the menu of the linked image is open", (menu_entry("Image info")) ~= nil)
+  T.eq("... without the delete of unreferenced images", (menu_entry("Delete this unreferenced image")), nil)
+  T.close_floats()
+
+  -- No: the tree asked in its own words, and nothing went
+  T.answer("confirm", false)
+  T.ok("the menu of the unreferenced image offers to delete it", pick("docs/assets/c.png", "Delete this unreferenced image"))
+  T.settle(400)
+  T.close_floats()
+  T.ok("the tree asks; No keeps the file", T.exists("docs/assets/c.png"))
+  has("... and its badge", T.drawn("docs/assets/c.png").text, "orphan")
+
+  -- Yes: to the trash of the tree, and the badge and the count go
+  T.answer("confirm", true)
+  T.ok("the entry can be picked again", pick("docs/assets/c.png", "Delete this unreferenced image"))
+  T.wait(function()
+    return not T.exists("docs/assets/c.png")
+  end, 5000)
+  T.close_floats()
+  T.eq(
+    "Yes sends the image to the trash of the tree",
+    { T.exists("docs/assets/c.png"), vim.uv.fs_stat(bin .. "/c.png") ~= nil },
+    { false, true }
+  )
+  T.ok(
+    "... the tree drops its line",
+    T.wait(function()
+      return T.adapter.get_node_line(dir .. "/docs/assets/c.png") == nil
+    end, 5000)
+  )
+  T.ok(
+    "... and the folder counts one again",
+    T.wait(function()
+      return T.drawn("docs/assets").text:find("1", 1, true) ~= nil
+    end, 5000)
+  )
+  T.eq("none of it says anything at warning level", T.loud(mark), {})
+end
+
 -- ── the badge follows a written document ─────────────────────────────────────
 T.tree()
 T.mkfile("docs/guide.md", { "# Guide", "", "![a](assets/a.png) ![b](assets/b.png)" })
@@ -198,4 +294,5 @@ T.eq("... and the count on the folder", T.drawn("docs").text, "")
 T.eq("no dialog nobody expected", T.unanswered, 0)
 require("images.integrations.tree").unregister()
 vim.fn.delete(scratch, "rf")
+vim.fn.delete(bin, "rf")
 T.finish()
