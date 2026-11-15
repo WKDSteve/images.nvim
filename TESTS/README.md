@@ -36,6 +36,42 @@ CI (`.github/workflows/ci.yml`) runs this, `stylua --check` and `luacheck`
 on every push and PR to `main`, plus a separate job that generates the
 module map.
 
+## Test sheets
+
+`TESTS/sheets/*.sheet.lua` are feature sheets of testing.nvim
+([SHEETS.md](https://github.com/WKDSteve/testing.nvim/blob/main/docs/SHEETS.md)):
+what a person would check by hand, written down as data and run in a child
+editor with a UI attached. `TESTS/sheets_spec.lua` runs each as one case
+(`sheet:<id>`); `TESTS/sheets/features.lua` is the catalog of functionalities
+they name.
+
+The sheets drive images.nvim in the **real own tree of filetree.nvim** (with the
+menus and dialogs of ui.nvim): the badge on an image no document links, two
+tabs on two projects, and the actions "look again" and "delete" from the
+context menu, with the mouse and the keys a person uses. Both plugins are looked
+up like a dependency (`$FILETREE_NVIM_DIR` / `$UI_NVIM_DIR`, `.deps/<name>`,
+`../<name>`, the lazy.nvim directory) but stay off the runtimepath of the specs;
+without them a sheet is a reported skip (`n/a`), which is red on CI, where the
+workflow checks both out below `.deps/`.
+
+```sh
+bash scripts/test.sh --file sheets                 # all sheets (writes a missing snapshot)
+testing sheets step images.tree-orphan-delete --run --format=text   # one sheet, step by step
+testing sheets report . --from ir.json             # what is left for a person (judge, manual)
+```
+
+| Sheet | Checks |
+| --- | --- |
+| `images.tree-orphan-badge` | The badge on the unreferenced image, the counts on its folders, and that both go when a written document links the image |
+| `images.tree-orphan-roots` | Two tabs on two projects: each tree shows the badges of its own root, a closed tab's project is forgotten |
+| `images.tree-orphan-rescan` | "Look for unreferenced images again" from the menu of a folder, the line that says how many, the badge on a new image |
+| `images.tree-orphan-delete` | "Delete this unreferenced image" from the menu: the tree's own question, No and Yes, the trash a folder; the line, the badge and the counts go |
+| `images.tree-orphan-delete-program` | Which program the real trash backend starts for the image (`powershell`, `trash`, `gio` as recording stand-ins) |
+| `images.tree-orphan-delete-for-good` | A tree without a trash: the confirm prompt of images.nvim, Cancel and Delete |
+
+What stays for a person (the real recycle bin of the system, the look in the
+real editor) is in the `judge` and `manual` lines of the sheets.
+
 ## What "covered" means here
 
 A file with real branching logic gets a spec that asserts real behaviour —

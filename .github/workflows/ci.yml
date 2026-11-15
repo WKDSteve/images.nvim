@@ -73,8 +73,21 @@ jobs:
       # gopath.nvim is deliberately NOT checked out either (as before the migration): with it on the
       # runtimepath paste_target_spec.lua's "without gopath" block (package.loaded[...] = false does
       # not make `require` fail on LuaJIT) runs gopath's case-insensitive shortener on Linux/macOS.
-      # ui.nvim is deliberately NOT checked out: compare_spec.lua needs `ui.kit` unreachable, and
-      # menu_spec.lua degrades to a no-op without a ui.nvim checkout.
+      # ui.nvim is deliberately NOT on the runtimepath of the specs: compare_spec.lua needs `ui.kit`
+      # unreachable, and menu_spec.lua degrades to a no-op without it. The two checkouts below are for the
+      # test sheets only (TESTS/sheets/, the badge and the actions in the real tree of filetree.nvim):
+      # TESTS/minimal_init.lua finds them in .deps/ and puts neither on the runtimepath, a sheet adds them
+      # in its own child editor. Without them a feature sheet is a skip, which is red under CI.
+      - uses: actions/checkout@v5
+        with:
+          repository: WKDSteve/ui.nvim
+          path: .deps/ui.nvim
+          ref: ci-verified
+      - uses: actions/checkout@v5
+        with:
+          repository: WKDSteve/filetree.nvim
+          path: .deps/filetree.nvim
+          ref: ci-verified
       - run: |
           exec > >(tee -a "$RUNNER_TEMP/test-output.log") 2>&1
           bash scripts/test.sh --json "$RUNNER_TEMP/testing-ir.json"

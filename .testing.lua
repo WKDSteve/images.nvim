@@ -7,7 +7,8 @@ return {
   plugin = "images",
   -- How the spec files are run: "auto" = sniffed per file, "h" = on the project's own TESTS/harness.lua,
   -- "script" = a self-running script in its own process.
-  dialect = "h",
+  -- TESTS/sheets_spec.lua is busted style: one case per test sheet (`sheet:<id>`, testing sheets report).
+  dialect = { ["TESTS/sheets_spec.lua"] = "busted", ["*"] = "h" },
   -- Dependencies (directory names) put on the runtimepath: $<NAME>_DIR, .deps/<name>, ../<name>,
   -- stdpath('data')/lazy/<name>.
   deps = { "lib.nvim", "testing.nvim" },
@@ -30,7 +31,8 @@ return {
       "magick",
       -- ocr_spec.lua runs the real tesseract binary (the specs skip when it is absent).
       "tesseract",
-      -- proc_spec.lua starts the running Neovim as the stand-in for a process that hangs and one that exits 0.
+      -- proc_spec.lua starts the running Neovim as the stand-in for a process that hangs and one that exits 0;
+      -- sheets_spec.lua starts a child editor per test sheet (TESTS/sheets/).
       "nvim",
       -- ps_path_spec.lua runs one real powershell.exe (skipped where absent) to prove a hostile path stays inside its string.
       "powershell",
@@ -47,9 +49,13 @@ return {
   -- (PS_TIMEOUT_MS, images.nvim@f589a8e): a cold start on windows-latest took 36 s in a green run
   -- and just over 60 s in two red ones on 2026-10-20. The file limit has to be above what the spec
   -- itself allows, or the runner kills a slow but healthy file; it still catches a real hang.
-  timeouts = { file_ms = 300000 },
+  -- case_ms: a test sheet is one case that boots a child editor with the real tree of filetree.nvim and waits for
+  -- scans in the background; under load that takes longer than the default 10 s.
+  timeouts = { case_ms = 60000, file_ms = 300000 },
   -- Environment variables the specs read; a child editor inherits an allowlist only (never secrets).
-  env_allow = { "MAGICK_*" },
+  -- UI_NVIM_DIR, FILETREE_NVIM_DIR: how ui.nvim and filetree.nvim reach the test sheets from the worktree of
+  -- `ci commit`, where they are no siblings (TESTS/minimal_init.lua names them, TESTS/sheets/_helpers.lua adds them).
+  env_allow = { "MAGICK_*", "UI_NVIM_DIR", "FILETREE_NVIM_DIR" },
   -- Findings the minimal conformance editor cannot avoid (docs/CONFORMANCE.md of testing.nvim); reviewed 2026-10-14.
   conformance = {
     -- gated: a failed check makes `scripts/test.sh conformance` exit 1
