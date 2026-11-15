@@ -6,7 +6,7 @@ return {
   id = "images.tree-orphan-delete-for-good",
   feature = "images.tree-orphan-delete",
   title = "images.nvim: without a trash in the tree the delete asks in a confirm prompt and deletes for good",
-  task = "images.nvim/own-tree-feature-sheets-images-media-pickers",
+  task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
   sizes = { { rows = 24, cols = 100 } },
   requires = {

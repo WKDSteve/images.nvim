@@ -7,7 +7,7 @@ return {
   id = "images.tree-orphan-delete-program",
   feature = "images.tree-orphan-delete",
   title = "images.nvim: deleting an unreferenced image hands exactly that file to the trash program of the platform",
-  task = "images.nvim/own-tree-feature-sheets-images-media-pickers",
+  task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
   sizes = { { rows = 24, cols = 100 } },
   fakes = { "powershell", "trash", "gio" },

@@ -6,7 +6,7 @@ return {
   id = "images.tree-orphan-roots",
   feature = "images.tree-orphan-roots",
   title = "images.nvim: two tabs on two projects, each tree shows the unreferenced images of its own root",
-  task = "images.nvim/own-tree-feature-sheets-images-media-pickers",
+  task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
   sizes = { { rows = 24, cols = 100 } },
   requires = {

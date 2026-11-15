@@ -8,7 +8,7 @@ return {
   id = "images.tree-orphan-badge",
   feature = "images.tree-orphan-badge",
   title = "images.nvim: an image no document links carries a badge in the tree, its folders count it",
-  task = "images.nvim/own-tree-feature-sheets-images-media-pickers",
+  task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
   sizes = { { rows = 24, cols = 100 } },
   requires = {

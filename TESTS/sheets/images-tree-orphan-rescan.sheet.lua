@@ -6,7 +6,7 @@ return {
   id = "images.tree-orphan-rescan",
   feature = "images.tree-orphan-rescan",
   title = "images.nvim: the menu of a folder looks for unreferenced images again and says how many there are",
-  task = "images.nvim/own-tree-feature-sheets-images-media-pickers",
+  task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
   sizes = { { rows = 24, cols = 100 } },
   requires = {

@@ -9,7 +9,7 @@ return {
   id = "images.tree-orphan-delete",
   feature = "images.tree-orphan-delete",
   title = "images.nvim: delete an unreferenced image from the menu of the tree, No and Yes of the trash question",
-  task = "images.nvim/own-tree-feature-sheets-images-media-pickers",
+  task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
   sizes = { { rows = 24, cols = 100 } },
   requires = {
