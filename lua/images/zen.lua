@@ -401,6 +401,15 @@ end
 --- dimensions (no ImageMagick, or a format `images.info` cannot read) the
 --- maximum box stands — unchanged behaviour.
 ---
+--- The dimensions come from the file's header (`images.pixels`), the same
+--- number `images.anchor` fits every draw with. `images.info.collect` -- a
+--- blocking `magick identify` -- is only asked when the header cannot say (an
+--- SVG): it used to run on every open, the one process start `images.show`
+--- does not make, and on Windows under an endpoint scanner a process start is
+--- the slow part of opening a picture (filetree's `<CR>` against `<Tab>`).
+--- `scripts/bench_open.lua` measures both paths; TESTS/zen_open_cost_spec.lua
+--- keeps the open free of process starts.
+---
 --- Why do this here rather than let `preserveAspectRatio=1` handle it alone:
 --- a window wider or taller than the (scaled) image shows visible empty space,
 --- and a window cut to fit never has to leave anything empty in the first
@@ -416,7 +425,7 @@ end
 ---@return integer height
 function M.dimensions_for(file, zen_cfg)
   local max_w, max_h = M.dimensions(zen_cfg)
-  local px = require("images.info").collect(file)
+  local px = require("images.pixels").read(file) or require("images.info").collect(file)
   if not px or not px.width or not px.height then return max_w, max_h end
   return require("images.scale").fit_cells(max_w, max_h, px)
 end
