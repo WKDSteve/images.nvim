@@ -176,8 +176,9 @@ function _G.boot(opts)
   _G.adapter.open_cwd()
 end
 
----The calls of the trash program of this platform, as the stand-ins of `fakes` recorded them: Windows (and WSL,
----through interop) starts `powershell`, macOS the `trash` CLI when there is one, Linux `gio trash`.
+---The calls of the trash program of this platform, as the stand-ins of `fakes` recorded them: Windows starts
+---`powershell`, macOS the `trash` CLI when there is one, Linux and WSL `gio trash` (lib.nvim's fs.trash: WSL is a
+---Linux there, its files go to the desktop trash, not to the Recycle Bin).
 ---@return { program: string, argv: string[], cwd: string }[]
 function _G.trash_calls()
   local read = require("testing.fake_programs").read
@@ -191,7 +192,7 @@ end
 ---The trash program this platform starts (see `_G.trash_calls`).
 ---@return string
 function _G.trash_program()
-  if vim.fn.has("win32") == 1 or vim.fn.has("wsl") == 1 then return "powershell" end
+  if vim.fn.has("win32") == 1 then return "powershell" end
   return vim.fn.has("mac") == 1 and "trash" or "gio"
 end
 
