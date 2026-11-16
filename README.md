@@ -97,6 +97,7 @@ images.nvim is released under the [MIT License](https://opensource.org/licenses/
 
 **Uses**
 
+- [filetree.nvim](https://github.com/WKDSteve/filetree.nvim): With filetree.nvim loaded, images.nvim deletes images through the trash of the tree, which asks in its own dialog and can undo. ([picture](assets/graphs/pair/images.nvim--filetree.nvim.png))
 - [gopath.nvim](https://github.com/WKDSteve/gopath.nvim): images.nvim writes the link of a pasted image in the environment spelling of gopath.nvim (`gopath.shorten_path`) when it is installed. ([picture](assets/graphs/pair/images.nvim--gopath.nvim.png))
 - [markdown.nvim](https://github.com/WKDSteve/markdown.nvim): images.nvim resolves paths with the resolver of markdown.nvim (`markdown.util.path`) when it is installed, and with its own otherwise. ([picture](assets/graphs/pair/images.nvim--markdown.nvim.png))
 - [pdfport.nvim](https://github.com/WKDSteve/pdfport.nvim): images.nvim renders a page of a PDF through pdfport.nvim (`render_page`). ([picture](assets/graphs/pair/images.nvim--pdfport.nvim.png))
