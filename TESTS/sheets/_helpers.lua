@@ -195,14 +195,6 @@ function _G.trash_program()
   return vim.fn.has("mac") == 1 and "trash" or "gio"
 end
 
----Let `vim.fn.confirm` ask for real. The child of a sheet answers the prompt functions of `vim.fn` with
----"cancelled" before anything is shown (testing.nvim's rpc boot, so that no call hangs on a question nobody
----answers); a sheet whose subject is the question takes that away again and answers with a `prompt` step.
----`vim.fn` makes the real function anew on the next call.
-function _G.real_confirm()
-  vim.fn.confirm = nil
-end
-
 ---Focus the editor window of the first tab's layout (the window README.md was opened in).
 function _G.editor()
   vim.api.nvim_set_current_win(_G.editor_win)

@@ -8,6 +8,8 @@ return {
   title = "images.nvim: without a trash in the tree the delete asks in a confirm prompt and deletes for good",
   task = "images.nvim/abnahme-orphan-images-in-the-own-tree",
   engine = "rpc",
+  -- the subject is images.nvim's own vim.fn.confirm: let it show its prompt instead of "cancelled"
+  prompts = "real",
   sizes = { { rows = 24, cols = 100 } },
   requires = {
     {
@@ -17,7 +19,7 @@ return {
   },
   steps = {
     {
-      lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua"); _G.boot({ trash = "none" }); _G.real_confirm()]],
+      lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua"); _G.boot({ trash = "none" })]],
       note = "the project site, images.nvim, the own tree without its trash feature",
     },
     { lua = [[_G.on(_G.site, "docs/assets/unused.png")]] },
