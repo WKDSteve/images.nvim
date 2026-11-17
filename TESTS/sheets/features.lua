@@ -50,4 +50,10 @@ return {
     surface = { "config:tree.actions", "config:tree.keys.delete" },
     docs = "docs/FEATURES/INTEGRATIONS.md",
   },
+  {
+    id = "images.tree-zen-open",
+    title = "<CR> on an image in a tree view opens the zen float: the tree's preview goes, no process starts, one draw",
+    surface = { "config:display.zen" },
+    docs = "docs/FEATURES/INTEGRATIONS.md",
+  },
 }

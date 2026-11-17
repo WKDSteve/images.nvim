@@ -147,7 +147,9 @@ end
 ---`trash` says what stands behind the trash of the tree: "folder" (default) the folder `_G.bin`; "program" the
 ---real backend, which starts the program of the platform (a sheet lists them as `fakes`); "none" a tree without a
 ---trash, where images.nvim asks itself and deletes for good.
----@param opts? { trash?: "folder"|"program"|"none" }
+---`images` is merged into the setup of images.nvim; `preview` is the tree's preview feature (off by default, as
+---in filetree.nvim: `<Tab>`/`<CR>` on an image go through it).
+---@param opts? { trash?: "folder"|"program"|"none", images?: table, preview?: table }
 function _G.boot(opts)
   opts = opts or {}
   local trash = opts.trash or "folder"
@@ -156,7 +158,9 @@ function _G.boot(opts)
   vim.cmd("edit " .. vim.fn.fnameescape(_G.site .. "/README.md"))
   _G.editor_win = vim.api.nvim_get_current_win()
 
-  require("images").setup({ deps_popup = false, display = { terminal_probe = false } })
+  require("images").setup(
+    vim.tbl_deep_extend("force", { deps_popup = false, display = { terminal_probe = false } }, opts.images or {})
+  )
   -- before the setup of the tree: its trash feature asks the backend whether it is there, and a Linux without
   -- gio or trash-cli has none
   if trash == "folder" then _G.trash_is_a_folder() end
@@ -169,6 +173,7 @@ function _G.boot(opts)
       session = { enabled = false }, -- writes into the data directory
       close_on_open = { enabled = false },
       trash = { enabled = trash ~= "none" },
+      preview = opts.preview,
     },
   })
   require("ui.contextmenu").setup({ renderer = "kit" })

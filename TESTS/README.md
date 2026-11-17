@@ -68,6 +68,7 @@ testing sheets report . --from ir.json             # what is left for a person (
 | `images.tree-orphan-delete` | "Delete this unreferenced image" from the menu: the tree's own question, No and Yes, the trash a folder; the line, the badge and the counts go |
 | `images.tree-orphan-delete-program` | Which program the real trash backend starts for the image (`powershell`, `trash`, `gio` as recording stand-ins) |
 | `images.tree-orphan-delete-for-good` | A tree without a trash: the confirm prompt of images.nvim, Cancel and Delete |
+| `images.tree-zen-open` | `<CR>` on an image with the tree's text preview open: the preview goes first, the zen float opens with no `magick` started, its picture sent once (not again for its own WinResized), `images.show` not used |
 
 What stays for a person (the real recycle bin of the system, the look in the
 real editor) is in the `judge` and `manual` lines of the sheets.
