@@ -43,6 +43,11 @@ return {
       "tmux",
       -- testing.pty reads the bytes the terminal got back through `cat` on Linux and macOS.
       "cat",
+      -- browse_spec.lua: the file helper of filetree.nvim lists the images (lib.nvim.fs.fast), where a program is
+      -- built next to this repository; a helper that ends hands the listing to fd.
+      "filetree-helper",
+      "fd",
+      "fdfind",
     },
   },
   -- ps_path_spec.lua makes two real powershell.exe round trips and lets each take up to 120 s
@@ -55,7 +60,7 @@ return {
   -- Environment variables the specs read; a child editor inherits an allowlist only (never secrets).
   -- UI_NVIM_DIR, FILETREE_NVIM_DIR: how ui.nvim and filetree.nvim reach the test sheets from the worktree of
   -- `ci commit`, where they are no siblings (TESTS/minimal_init.lua names them, TESTS/sheets/_helpers.lua adds them).
-  env_allow = { "MAGICK_*", "UI_NVIM_DIR", "FILETREE_NVIM_DIR" },
+  env_allow = { "MAGICK_*", "UI_NVIM_DIR", "FILETREE_NVIM_DIR", "LIB_FS_HELPER_TEST" },
   -- Findings the minimal conformance editor cannot avoid (docs/CONFORMANCE.md of testing.nvim); reviewed 2026-10-14.
   conformance = {
     -- gated: a failed check makes `scripts/test.sh conformance` exit 1

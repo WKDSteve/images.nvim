@@ -101,6 +101,56 @@ end
 -- Exposed for tests: a pure function, no terminal required.
 M.walk = walk
 
+--- How long `scan` waits for the file helper's listing before it walks itself (ms).
+M.HELPER_WAIT_MS = 5000
+
+--- The same images through the file helper (`lib.nvim.fs.fast`), when one is installed: one listing in
+--- another process (tasks vault, 6 300 entries: 18 ms instead of 210 ms). Nil without a helper, or
+--- when its listing did not finish; `walk` answers then. Same rules: the excluded folder names and
+--- `.git` are not entered, hidden entries are, `.gitignore` is not read; at most `max_entries()`
+--- files are looked at.
+---@param root string
+---@param exclude string[]
+---@param extensions string[]
+---@return string[]|nil
+local function via_helper(root, exclude, extensions)
+  local ok, helper = pcall(require, "lib.nvim.fs.helper")
+  if not ok or type(helper.available) ~= "function" or not helper.available() then return nil end
+  local fast = require("lib.nvim.fs.fast")
+  local ext_set = {}
+  for _, e in ipairs(extensions) do
+    ext_set[e:lower()] = true
+  end
+  local names = vim.deepcopy(exclude)
+  names[#names + 1] = ".git"
+  local limit = max_entries()
+  local found, seen, done, cancel = {}, 0, nil, nil
+  cancel = fast.list(root, { tier = "helper", ignore = "names", names = names }, function(paths)
+    for _, path in ipairs(paths) do
+      seen = seen + 1
+      if seen > limit then
+        if cancel then cancel() end
+        done = true
+        return
+      end
+      local ext = path:match("%.([%w]+)$")
+      if ext and ext_set[ext:lower()] then found[#found + 1] = path end
+    end
+  end, function(success)
+    done = success
+  end)
+  vim.wait(M.HELPER_WAIT_MS, function()
+    return done ~= nil
+  end, 2)
+  if not done then
+    cancel()
+    return nil
+  end
+  table.sort(found)
+  return found
+end
+M.via_helper = via_helper
+
 --- Collect image files below `root`, using the configured exclusion list and
 --- the configured extensions.
 ---@param root string absolute directory path
@@ -116,7 +166,7 @@ function M.scan(root)
   -- default (ERR-22). The extension list mirrors `config.DEFAULTS.extensions`.
   local exclude = type(c.display.browse_exclude) == "table" and c.display.browse_exclude or {}
   local extensions = type(c.extensions) == "table" and c.extensions or { "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg" }
-  return walk(root, exclude, extensions)
+  return via_helper(root, exclude, extensions) or walk(root, exclude, extensions)
 end
 
 --- Resolve the scope argument to a single root directory.

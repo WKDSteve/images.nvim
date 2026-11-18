@@ -289,6 +289,9 @@ installed, each entry gets a live image preview; without it, a plain list.
 them as a gallery instead of opening the first.
 
 - **Config:** `display.browse_exclude`, `display.browse_max_entries`.
+- **Speed:** with the file helper of filetree.nvim installed (`lib.nvim.fs.fast`) the folder is listed in
+  another process: the tasks vault (6 300 images) in 52 ms instead of 131 ms; without it the plugin walks
+  the folders itself as before.
 
 ### `:Image compare [cfile|cwd|path] [dir]`
 

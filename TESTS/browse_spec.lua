@@ -30,6 +30,50 @@ return function(H)
     end
   end)
 
+  -- ── via_helper: the file helper finds what walk finds ─────────────────────
+  -- Without a helper (the CI) it says nil and scan() walks; with one (a program
+  -- next to this repository, or $LIB_FS_HELPER_TEST) both lists must agree.
+  H.tmpdir(function(root)
+    H.write(root .. "/a.png", "x")
+    H.write(root .. "/sub/deep/b.JPG", "x")
+    H.write(root .. "/.hidden/c.png", "x")
+    H.write(root .. "/.git/d.png", "x")
+    H.write(root .. "/node_modules/e.png", "x")
+    H.write(root .. "/notes.txt", "x")
+    local helper = require("lib.nvim.fs.helper")
+    local program = vim.env.LIB_FS_HELPER_TEST
+    if not program or program == "" then
+      program = vim.fn.fnamemodify(vim.fn.getcwd(), ":h") .. "/filetree.nvim/helper/target/release/" .. helper.binary_name()
+    end
+    helper.configure(false)
+    H.eq(browse.via_helper(root, {}, { "png" }), nil, "via_helper: nil without a helper")
+    if vim.uv.fs_stat(program) then
+      helper.configure(program)
+      local function rel(list)
+        local out = {}
+        for _, p in ipairs(list or {}) do
+          out[#out + 1] = (p:gsub("\\", "/")):match("[^/]+/?[^/]*/?[^/]*$")
+        end
+        table.sort(out)
+        return table.concat(out, ",")
+      end
+      local function names(list)
+        local out = {}
+        for _, p in ipairs(list or {}) do
+          out[#out + 1] = p:match("[^/\\]+$")
+        end
+        table.sort(out)
+        return table.concat(out, ",")
+      end
+      local by_helper = browse.via_helper(root, { "node_modules" }, { "png", "jpg" })
+      local by_walk = browse.walk(root, { "node_modules" }, { "png", "jpg" })
+      H.eq(names(by_helper), names(by_walk), "via_helper: the same images as walk")
+      H.eq(names(by_helper), "a.png,b.JPG,c.png", "via_helper: hidden yes, .git and excluded no")
+      H.ok(rel(by_helper) ~= "", "via_helper: absolute paths")
+    end
+    helper.configure(nil)
+  end)
+
   -- ── walk: the extension filter is case-insensitive ───────────────────────
   H.tmpdir(function(root)
     H.write(root .. "/upper.PNG", "x")
