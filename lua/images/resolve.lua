@@ -36,6 +36,33 @@ function M.is_image(target)
   return false
 end
 
+---- How long a failed `soft_require` is believed before the module is looked for again, in
+--- milliseconds: a plugin added to 'runtimepath' later is found after that.
+M.SOFT_REQUIRE_RETRY_MS = 5000
+
+---@type table<string, number>  module -> `uv.hrtime()` of the failed lookup
+local missing = {}
+
+--- `require(name)` for an optional dependency, or nil when it is not there. A failed `require` is
+--- not cached by Lua: every call walks all of `package.loaders` and 'runtimepath' again, which cost
+--- an orphan scan of a notes tree 20 s for one call per line. So a failure is remembered for
+--- `SOFT_REQUIRE_RETRY_MS`; a module that is loaded or preloaded meanwhile counts at once.
+---@param name string
+---@return table|nil
+function M.soft_require(name)
+  local loaded = package.loaded[name]
+  if type(loaded) == "table" then return loaded end
+  local failed = missing[name]
+  if failed and not package.preload[name] and (vim.uv.hrtime() - failed) / 1e6 < M.SOFT_REQUIRE_RETRY_MS then return nil end
+  local ok, mod = pcall(require, name)
+  if ok and type(mod) == "table" then
+    missing[name] = nil
+    return mod
+  end
+  missing[name] = vim.uv.hrtime()
+  return nil
+end
+
 --- Every link target on a line, with its column range (1-based, both bounds
 --- inclusive).
 ---
@@ -48,8 +75,8 @@ end
 ---@param lnum integer|nil only relevant for passing on to markdown.nvim
 ---@return { target: string, from: integer, to: integer }[]
 function M.links_in_line(line, lnum)
-  local ok, scan = pcall(require, "markdown.core.link_scan")
-  if ok and type(scan.from_line) == "function" then
+  local scan = M.soft_require("markdown.core.link_scan")
+  if scan and type(scan.from_line) == "function" then
     local out = {}
     for _, link in ipairs(scan.from_line(line, lnum or 1)) do
       out[#out + 1] = { target = link.target, from = link.col + 1, to = link.col_end + 1 }

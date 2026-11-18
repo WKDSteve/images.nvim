@@ -18,6 +18,34 @@ return function(H)
   H.falsy(resolve.is_image("no-extension"), "without an extension, not an image")
   H.falsy(resolve.is_image("archive.png.gz"), "only the last extension counts")
 
+  -- ── soft_require ───────────────────────────────────────────────────────────
+  -- A failed `require` is not cached by Lua; asked once per scanned line it made the orphan scan of
+  -- a notes tree take 20 s. A failure is remembered, a module that appears later still counts.
+  do
+    local name = "images_spec_absent_module"
+    local asked = 0
+    local loaders = package.loaders -- LuaJIT (5.1): `searchers` does not exist
+    table.insert(loaders, 1, function(mod)
+      if mod == name then asked = asked + 1 end
+      return nil
+    end)
+    H.eq(resolve.soft_require(name), nil, "a missing module is nil")
+    H.eq(resolve.soft_require(name), nil, "…and stays nil")
+    H.eq(asked, 1, "the loaders are asked once, not on every call")
+    package.preload[name] = function()
+      return { preloaded = true }
+    end
+    local got = resolve.soft_require(name)
+    H.eq(got and got.preloaded, true, "a module preloaded after the failure counts at once")
+    package.preload[name], package.loaded[name] = nil, nil
+    resolve.soft_require(name) -- remembered as missing again
+    package.loaded[name] = { loaded = true }
+    got = resolve.soft_require(name)
+    H.eq(got and got.loaded, true, "a module loaded after the failure counts at once")
+    package.loaded[name] = nil
+    table.remove(loaders, 1)
+  end
+
   -- ── links_in_line ──────────────────────────────────────────────────────────
   local links = resolve.links_in_line("no link here")
   H.eq(#links, 0, "a line without a link yields nothing")
