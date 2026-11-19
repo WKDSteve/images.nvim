@@ -225,7 +225,12 @@ function M.open(path)
     return false
   end
 
-  local px, info_err = require("images.info").collect(target)
+  -- The header first, as images.zen does: `info.collect` runs a blocking `magick identify` (60 ms on Windows, a
+  -- freeze `testing perf` reported), only needed where the header says nothing.
+  local px, info_err = require("images.pixels").read(target), nil
+  if not px then
+    px, info_err = require("images.info").collect(target)
+  end
   if not px or not px.width or not px.height then
     notify().error(info_err or "cannot determine the image dimensions")
     return false

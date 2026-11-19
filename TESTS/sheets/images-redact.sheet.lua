@@ -1,8 +1,8 @@
 -- Feature images.redact (TESTS/sheets/features.lua): `:Image redact` opens the image under the cursor in a zen
 -- window in censor mode; `v`, a move and `<CR>` mark a box, `w` burns it in with ImageMagick and writes
--- `hello.redacted.png` beside the source, which stays untouched. magick runs for real where installed (its
--- `identify` gives the pixel size, its draw writes the copy); on a runner without it a stand-in answers identify and
--- takes the draw, and the sheet proves the draw was asked for the copy. The child has no terminal that draws
+-- `hello.redacted.png` beside the source, which stays untouched. The pixel size comes from the PNG header (no
+-- `magick identify` on the way in); magick runs for real where installed and draws the copy; on a runner without it
+-- a stand-in takes the draw, and the sheet proves the draw was asked for the copy. The child has no terminal that draws
 -- pictures: the bytes for the terminal are counted, not sent.
 return {
   id = "images.redact",
@@ -13,7 +13,7 @@ return {
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
-        _G.tools({ magick = { stdout = "PNG 160 48" } })
+        _G.tools({ magick = {} })
         _G.desk({ display = { assume_supported = true } })
         _G.count_pictures()]],
       note = "a note that links two images, images.nvim set up (the terminal taken as image-capable)",
@@ -26,13 +26,17 @@ return {
       note = "the censor window is open and its picture was sent",
     },
     { expect = [[_G.eq(_G.loud(), "")]], note = "nothing was said at warning level" },
+    {
+      expect = [[_G.real.magick or _G.eq(#_G.stand_in_calls("magick"), 0)]],
+      note = "opening it started no magick: the size came from the header",
+    },
     { keys = "v", note = "v: a keyboard selection" },
     { keys = "lllljj", note = "four cells right, two down" },
     { keys = "<CR>", note = "<CR>: the box is taken" },
     { keys = "w", note = "w" },
     {
       wait = [[_G.real.magick and (_G.noted("redacted copy saved") or _G.loud() ~= "")
-        or #_G.stand_in_calls("magick") >= 2]],
+        or #_G.stand_in_calls("magick") >= 1]],
       timeout = 15000,
       note = "the copy is written",
     },

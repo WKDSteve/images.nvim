@@ -41,8 +41,11 @@ return function(H)
     end,
   }
   package.loaded["images.guard"] = { check = function() end }
+  -- `info.collect` runs a blocking `magick identify`: a PNG's header has the size without it.
+  local collected = 0
   package.loaded["images.info"] = {
     collect = function()
+      collected = collected + 1
       return { width = 600, height = 300 }
     end,
   }
@@ -127,6 +130,7 @@ return function(H)
     fd:close()
 
     H.ok(redact.open(file), "redact opens")
+    H.eq(collected, 0, "the size of a PNG comes from its header, no magick identify")
     settle()
     local win = vim.api.nvim_get_current_win()
     H.ok(redact.is_open(), "is_open")
