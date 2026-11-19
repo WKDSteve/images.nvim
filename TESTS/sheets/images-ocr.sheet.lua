@@ -1,7 +1,7 @@
 -- Feature images.ocr (TESTS/sheets/features.lua): `:Image ocr` on the link under the cursor reads the text out of the
--- image into a scratch buffer, and `--upscale` enlarges it with ImageMagick first. tesseract and magick run for real
--- where installed (the fixture says HELLO); on a runner without them the stand-ins answer the way they would, so the
--- buffer holds the same word either way.
+-- image into a scratch buffer, and `--upscale` enlarges it with ImageMagick first. tesseract (with English data) and
+-- magick run for real where installed (the fixture says HELLO); on a runner without them the stand-ins answer the
+-- way they would, so the buffer holds the same word either way.
 return {
   id = "images.ocr",
   feature = "images.ocr",
@@ -11,7 +11,20 @@ return {
   steps = {
     {
       lua = [[dofile(vim.fn.getcwd() .. "/TESTS/sheets/_helpers.lua")
-        _G.tools({ tesseract = { stdout = "HELLO" }, magick = {} })
+        _G.tools({
+          tesseract = {
+            stdout = "HELLO",
+            -- the fixture is English: a tesseract without `eng` (WSL with afr/osd only) cannot read it
+            usable = function()
+              local langs = vim.system({ "tesseract", "--list-langs" }, { text = true }):wait()
+              for _, line in ipairs(vim.split(langs.stdout or "", "\n", { plain = true })) do
+                if vim.trim(line) == "eng" then return true end
+              end
+              return false
+            end,
+          },
+          magick = {},
+        })
         _G.desk()
         _G.note_win = vim.api.nvim_get_current_win()]],
       note = "a note that links two images, images.nvim set up; tesseract and magick real where installed",

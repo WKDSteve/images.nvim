@@ -342,14 +342,18 @@ local FIXTURES = vim.fs.normalize(vim.fn.getcwd()) .. "/TESTS/sheets/fixtures"
 ---Programs the sheet needs, `name -> spec` (`testing.fake_programs`: `stdout`, `exit_code`). A program this machine
 ---has runs for real, which is what `testing perf` measures; one it lacks (ImageMagick and tesseract on a CI runner)
 ---becomes a recording stand-in first on this editor's PATH, so the feature still makes the call and the sheet can
----read it. Call it before the setup: the setup looks the programs up.
+---read it. Call it before the setup: the setup looks the programs up. `usable` (a function in the spec) decides about
+---an installed program too: false puts the stand-in before it (a tesseract without the language data the sheet reads).
 ---@param specs table<string, table>
 ---@return table<string, boolean> real  name -> the real program runs
 function _G.tools(specs)
   local real, missing = {}, {}
   for name, spec in pairs(specs) do
-    real[name] = vim.fn.executable(name) == 1
-    if not real[name] then missing[name] = spec end
+    real[name] = vim.fn.executable(name) == 1 and (spec.usable == nil or spec.usable() == true)
+    if not real[name] then
+      missing[name] = vim.tbl_extend("force", {}, spec)
+      missing[name].usable = nil
+    end
   end
   if next(missing) then
     _G.stand_ins = require("testing.fake_programs").new(missing)
