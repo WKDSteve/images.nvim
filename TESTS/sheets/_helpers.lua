@@ -334,4 +334,148 @@ function _G.menu_on(label)
   return false
 end
 
+-- ── The sheets without a tree: one document with two images ──────────────────────────────────────────────────────
+
+-- Captured while the child's cwd is still the project root: `_G.desk` moves it into the temp project.
+local FIXTURES = vim.fs.normalize(vim.fn.getcwd()) .. "/TESTS/sheets/fixtures"
+
+---Programs the sheet needs, `name -> spec` (`testing.fake_programs`: `stdout`, `exit_code`). A program this machine
+---has runs for real, which is what `testing perf` measures; one it lacks (ImageMagick and tesseract on a CI runner)
+---becomes a recording stand-in first on this editor's PATH, so the feature still makes the call and the sheet can
+---read it. Call it before the setup: the setup looks the programs up.
+---@param specs table<string, table>
+---@return table<string, boolean> real  name -> the real program runs
+function _G.tools(specs)
+  local real, missing = {}, {}
+  for name, spec in pairs(specs) do
+    real[name] = vim.fn.executable(name) == 1
+    if not real[name] then missing[name] = spec end
+  end
+  if next(missing) then
+    _G.stand_ins = require("testing.fake_programs").new(missing)
+    vim.env.PATH = _G.stand_ins:path(vim.env.PATH)
+  end
+  _G.real = real
+  return real
+end
+
+---The calls a stand-in of `_G.tools` recorded (`{ program, argv, cwd }`), none for a program that ran for real.
+---@param name string
+---@return { program: string, argv: string[], cwd: string }[]
+function _G.stand_in_calls(name)
+  return _G.stand_ins and _G.stand_ins:calls(name) or {}
+end
+
+---Windows: `vim.system` gets the bare program name for `powershell.exe` and `explorer.exe`. A stand-in of `fakes`
+---is a `.cmd` file there and only the bare name reaches it (testing.nvim task
+---fakes-unter-windows-exe-namen-explorer-exe-rundll32-exe-und); elsewhere nothing changes.
+function _G.bare_exe_names()
+  if vim.fn.has("win32") ~= 1 then return end
+  local system = vim.system
+  vim.system = function(argv, ...)
+    if type(argv) == "table" and type(argv[1]) == "string" then
+      argv = vim.list_extend({ (argv[1]:gsub("%.exe$", "")) }, argv, 2)
+    end
+    return system(argv, ...)
+  end
+end
+
+---The calls of the `fakes` stand-ins of the sheet to `program`.
+---@param program string
+---@return { program: string, argv: string[], cwd: string }[]
+function _G.faked(program)
+  return require("testing.fake_programs").read(vim.env.TESTING_FAKES, program)
+end
+
+---A project below the temp directory, `_G.desk_root`: `notes.md` links `assets/photo.png` (1x1) and
+---`assets/hello.png` (160x48, the word HELLO, from TESTS/sheets/fixtures); the editor's cwd is there and notes.md is
+---open with the cursor on line 1. images.nvim is set up with `images` merged into the defaults of the sheets (no
+---dependency popup, no terminal probe).
+---@param images? table
+function _G.desk(images)
+  local root = fresh_dir(vim.fn.tempname())
+  _G.desk_root = root
+  _G.write(root, "assets/photo.png")
+  vim.fn.mkdir(root .. "/assets", "p")
+  assert(vim.uv.fs_copyfile(FIXTURES .. "/hello.png", root .. "/assets/hello.png"))
+  _G.write(root, "notes.md", { "# Notes", "", "![photo](assets/photo.png)", "", "![hello](assets/hello.png)" })
+  vim.cmd("cd " .. vim.fn.fnameescape(root))
+  vim.cmd("edit " .. vim.fn.fnameescape(root .. "/notes.md"))
+  require("images").setup(
+    vim.tbl_deep_extend("force", { deps_popup = false, display = { terminal_probe = false } }, images or {})
+  )
+end
+
+---A small HTTP server in this editor on a free local port, serving the fixture hello.png at `/hello.png` (anything
+---else is a 404); `_G.requests` counts what it was asked. The real curl fetches from it, nothing leaves the machine
+---(the pattern of diff.nvim's url sheet). `_G.port` is its port.
+function _G.serve()
+  local fd = assert(io.open(FIXTURES .. "/hello.png", "rb"))
+  local png = fd:read("*a")
+  fd:close()
+  _G.requests = {}
+  local server = assert(vim.uv.new_tcp())
+  assert(server:bind("127.0.0.1", 0))
+  assert(server:listen(16, function()
+    local client = assert(vim.uv.new_tcp())
+    server:accept(client)
+    client:read_start(function(_, data)
+      if not data then return end
+      client:read_stop()
+      local path = data:match("^GET (%S+)") or "?"
+      _G.requests[#_G.requests + 1] = path
+      local found = path == "/hello.png"
+      local body = found and png or "not found\n"
+      local head = ("HTTP/1.1 %s\r\nContent-Type: %s\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"):format(
+        found and "200 OK" or "404 Not Found",
+        found and "image/png" or "text/plain",
+        #body
+      )
+      client:write(head .. body, function()
+        client:close()
+      end)
+    end)
+  end))
+  _G.port = server:getsockname().port
+end
+
+---Count the pictures images.nvim sends to the terminal instead of sending them: the child has no terminal that draws
+---them. `_G.sent` is the count.
+function _G.count_pictures()
+  _G.sent = 0
+  require("lib.nvim.terminal.osc").send = function(seq)
+    if seq:find("1337", 1, true) then _G.sent = _G.sent + 1 end
+    return true
+  end
+end
+
+---Put the cursor on the first line of the current buffer that holds `text`.
+---@param text string
+function _G.cursor_on(text)
+  for i, line in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
+    local col = line:find(text, 1, true)
+    if col then
+      vim.api.nvim_win_set_cursor(0, { i, col - 1 })
+      return
+    end
+  end
+  error("no line holds " .. text, 0)
+end
+
+---Whether `path` (any slashes) begins with `prefix`, or an error that names both.
+---@param path string
+---@param prefix string
+---@return boolean
+function _G.starts(path, prefix)
+  local got = path:gsub("\\", "/")
+  if got:sub(1, #prefix) ~= prefix then error(("%s does not begin with %s"):format(got, prefix), 0) end
+  return true
+end
+
+---The lines of the current buffer.
+---@return string[]
+function _G.lines()
+  return vim.api.nvim_buf_get_lines(0, 0, -1, false)
+end
+
 return M
