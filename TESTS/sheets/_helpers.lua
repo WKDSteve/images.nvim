@@ -370,6 +370,20 @@ function _G.stand_in_calls(name)
   return _G.stand_ins and _G.stand_ins:calls(name) or {}
 end
 
+---Whether a call to the stand-in `name` has an argument that holds `needle` (any slashes). Any argument, not the
+---last: a `.cmd` stand-in on Windows ends the list at an empty argument (testing.fake_programs).
+---@param name string
+---@param needle string
+---@return boolean
+function _G.stand_in_named(name, needle)
+  for _, call in ipairs(_G.stand_in_calls(name)) do
+    for _, arg in ipairs(call.argv) do
+      if arg:gsub("\\", "/"):find(needle, 1, true) then return true end
+    end
+  end
+  return false
+end
+
 ---Windows: `vim.system` gets the bare program name for `powershell.exe` and `explorer.exe`. A stand-in of `fakes`
 ---is a `.cmd` file there and only the bare name reaches it (testing.nvim task
 ---fakes-unter-windows-exe-namen-explorer-exe-rundll32-exe-und); elsewhere nothing changes.

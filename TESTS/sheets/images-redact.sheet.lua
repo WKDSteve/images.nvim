@@ -33,10 +33,18 @@ return {
     { keys = "v", note = "v: a keyboard selection" },
     { keys = "lllljj", note = "four cells right, two down" },
     { keys = "<CR>", note = "<CR>: the box is taken" },
+    {
+      -- a person sees the preview before `w`; and two stand-ins at once lose log lines on Windows
+      -- (testing.nvim task fake-programs-gleichzeitige-aufrufe-unter-windows-verlieren)
+      wait = [[_G.real.magick and _G.sent >= 2 or _G.loud():find("older set of boxes", 1, true) ~= nil]],
+      timeout = 15000,
+      note = "the preview with the box burned in has answered",
+    },
     { keys = "w", note = "w" },
     {
+      -- with a stand-in: the call of `w`, not the one of the preview drawn when the box was taken
       wait = [[_G.real.magick and (_G.noted("redacted copy saved") or _G.loud() ~= "")
-        or #_G.stand_in_calls("magick") >= 1]],
+        or _G.stand_in_named("magick", _G.desk_root .. "/assets/hello.redacted.")]],
       timeout = 15000,
       note = "the copy is written",
     },
@@ -44,12 +52,7 @@ return {
       expect = [[(function()
         local copy = _G.desk_root .. "/assets/hello.redacted.png"
         if _G.real.magick then return _G.eq(_G.loud(), "") and _G.exists(copy) end
-        -- any argument: a .cmd stand-in on Windows ends the list at an empty argument (testing.fake_programs)
-        for _, call in ipairs(_G.stand_in_calls("magick")) do
-          for _, arg in ipairs(call.argv) do
-            if arg:gsub("\\", "/"):find(_G.desk_root .. "/assets/hello.redacted.", 1, true) then return true end
-          end
-        end
+        if _G.stand_in_named("magick", _G.desk_root .. "/assets/hello.redacted.") then return true end
         error("no magick call names hello.redacted.*: " .. vim.inspect(_G.stand_in_calls("magick")), 0)
       end)()]],
       note = "hello.redacted.png beside the source",
