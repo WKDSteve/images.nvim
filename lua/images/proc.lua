@@ -31,21 +31,43 @@ function M.timeout_ms()
   return v
 end
 
---- `argv` (`{ "magick", ... }`) with the resource limits inserted after the binary. Anything else is returned
---- unchanged, so a caller can wrap an argv without checking what it starts.
+--- The tools `magick` runs as its first argument. Their name has to stay right after the binary: put after an
+--- option, magick reads it as an input file ("no decode delegate for this image format `identify'").
+local SUBCOMMANDS = {
+  animate = true,
+  compare = true,
+  composite = true,
+  conjure = true,
+  convert = true,
+  display = true,
+  identify = true,
+  import = true,
+  mogrify = true,
+  montage = true,
+  stream = true,
+}
+
+--- `argv` (`{ "magick", ... }`) with the resource limits inserted after the binary, or after its subcommand
+--- (`magick identify`). Anything else is returned unchanged, so a caller can wrap an argv without checking what
+--- it starts.
 ---@param argv string[]
 ---@return string[]
 function M.magick(argv)
   if argv[1] ~= "magick" then return argv end
   local conf = cfg()
   local out = { "magick" }
+  local first = 2
+  if SUBCOMMANDS[argv[2]] then
+    out[2] = argv[2]
+    first = 3
+  end
   if type(conf.magick_memory) == "string" and conf.magick_memory ~= "" then
     vim.list_extend(out, { "-limit", "memory", conf.magick_memory, "-limit", "map", conf.magick_memory })
   end
   if type(conf.magick_time_s) == "number" and conf.magick_time_s > 0 then
     vim.list_extend(out, { "-limit", "time", tostring(conf.magick_time_s) })
   end
-  for i = 2, #argv do
+  for i = first, #argv do
     out[#out + 1] = argv[i]
   end
   return out

@@ -20,6 +20,13 @@ return function(H)
     "the original arguments follow unchanged"
   )
 
+  -- A subcommand (`magick identify`) stays right after the binary: before it, magick reads it as a file name
+  -- ("no decode delegate for this image format `identify'") and :Image info lost the format.
+  argv = proc.magick({ "magick", "identify", "-format", "%m %w %h", "a.png[0]" })
+  H.eq(argv[2], "identify", "a subcommand stays second")
+  H.contains(table.concat(argv, " "), "identify -limit memory 512MiB", "the limits follow the subcommand")
+  H.eq(argv[#argv], "a.png[0]", "...and the rest of the argv follows them")
+
   -- Configured values and `false`.
   config.setup({ process = { magick_memory = "64MiB", magick_time_s = 5 } })
   joined = table.concat(proc.magick({ "magick", "a.png", "b.png" }), " ")
