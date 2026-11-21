@@ -157,10 +157,14 @@ return function(H)
 
     -- 4. The watcher dies without an answer.
     r = start(dir .. "/died.png")
-    last.on_exit({ code = 1, stdout = "", stderr = "Add-Type failed" })
+    -- Like the real `vim.system` with a `stderr` handler: the text reaches
+    -- the handler, `result.stderr` stays empty.
+    last.opts.stderr(nil, "Add-Type : Could not load\r\nfile or assembly")
+    last.on_exit({ code = 1, stdout = "", stderr = nil })
     settle(r)
     H.falsy(r.ok, "died: failure")
     H.contains(r.err or "", "without an answer", "died: said as such")
+    H.contains(r.err or "", "Could not load file or assembly", "died: with PowerShell's reason, on one line")
 
     -- 5. Hung without answer or exit: the backstop kills it.
     screenshot.backstop_grace_ms = 20

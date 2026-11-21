@@ -212,6 +212,9 @@ local function capture_windows(out, callback)
   local done = false
   local proc, timer = nil, nil
   local buffer = ""
+  -- Collected by hand: with a `stderr` handler of its own, `vim.system` leaves
+  -- `result.stderr` empty. Bounded, it is only the reason in an error message.
+  local errtext = ""
 
   ---@param ok boolean
   ---@param err string|nil
@@ -266,12 +269,14 @@ local function capture_windows(out, callback)
       end
       buffer = buffer:match("[^\n]*$") or ""
     end,
-    stderr = function() end,
+    stderr = function(err, data)
+      if not err and data and #errtext < 2000 then errtext = errtext .. data end
+    end,
   }, function(result)
     vim.schedule(function()
       -- After the answer this is the process ending as it should; without
       -- one, the watcher died or never got going.
-      local detail = vim.trim(result.stderr or "")
+      local detail = vim.trim(errtext ~= "" and errtext or tostring(result.stderr or "")):gsub("%s+", " ")
       finish(false, "the clipboard watcher ended without an answer" .. (detail ~= "" and (": " .. detail) or ""))
     end)
   end)
