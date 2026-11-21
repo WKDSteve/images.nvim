@@ -115,8 +115,12 @@ return {
     steps = {
       ["workflow-in-sync"] = { preset = "workflow-in-sync" },
       -- the layer rules of scripts/gen_map.lua: its exit code is the gate. Not --check: docs/map/ is in .gitignore,
-      -- so a fresh checkout has no map to compare against.
-      map = { run = { "nvim", "-n", "-i", "NONE", "--headless", "-l", "scripts/gen_map.lua" } },
+      -- so a fresh checkout has no map to compare against. The worktree of `ci commit` has neither .deps/ nor
+      -- siblings: env names the two checkouts the generator probes for.
+      map = {
+        run = { "nvim", "-n", "-i", "NONE", "--headless", "-l", "scripts/gen_map.lua" },
+        env = { LIB_NVIM_DIR = "${deps.lib.nvim}", DOCMAP_NVIM_DIR = "${deps.docmap.nvim}" },
+      },
     },
   },
 }
