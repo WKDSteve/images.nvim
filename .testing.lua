@@ -84,8 +84,6 @@ return {
   ci = {
     -- The GitHub workflow, generated: `testing init --workflow=public --force` writes .github/workflows/ci.yml from
     -- this (testing.nvim docs/WORKFLOW-CI.md); the step workflow-in-sync keeps the two together.
-    -- tmux is not installed on the hosted legs (packages would install it on all three systems, and choco has no
-    -- tmux): TESTS/pty_osc1337_spec.lua reports n/a there and runs where tmux is (WSL locally).
     workflow = {
       name = "images.nvim",
       layout = "hosted",
@@ -109,6 +107,14 @@ return {
           repo = "WKDSteve/docmap.nvim",
           ref = "ci-verified",
           why = "the step map runs docmap's generator (scripts/gen_map.lua finds it in .deps/)",
+        },
+      },
+      packages = {
+        {
+          -- choco has no tmux; on Windows the pty specs run through WSL, which the hosted runner lacks (n/a there)
+          name = "tmux",
+          choco = false,
+          why = "TESTS/pty_osc1337_spec.lua drives a real Neovim in tmux on the Linux and macOS legs",
         },
       },
     },
