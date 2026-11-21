@@ -81,4 +81,42 @@ return {
       },
     },
   },
+  ci = {
+    -- The GitHub workflow, generated: `testing init --workflow=public --force` writes .github/workflows/ci.yml from
+    -- this (testing.nvim docs/WORKFLOW-CI.md); the step workflow-in-sync keeps the two together.
+    -- tmux is not installed on the hosted legs (packages would install it on all three systems, and choco has no
+    -- tmux): TESTS/pty_osc1337_spec.lua reports n/a there and runs where tmux is (WSL locally).
+    workflow = {
+      name = "images.nvim",
+      layout = "hosted",
+      -- the steps that depend on the platform: the windows and macOS legs run only these
+      platform = { "suite", "conformance" },
+      -- `testing ci land`: a check branch ci/** runs the hosted legs, main moves to a commit only once it is green there
+      land = true,
+      -- more checkouts below .deps/, not on the runtimepath of the specs (TESTS/minimal_init.lua finds them there)
+      checkouts = {
+        {
+          repo = "WKDSteve/ui.nvim",
+          ref = "ci-verified",
+          why = "only the test sheets load it (TESTS/sheets/): compare_spec.lua needs ui.kit off the runtimepath",
+        },
+        {
+          repo = "WKDSteve/filetree.nvim",
+          ref = "ci-verified",
+          why = "only the test sheets load it: the badge and the actions in the real tree of filetree.nvim",
+        },
+        {
+          repo = "WKDSteve/docmap.nvim",
+          ref = "ci-verified",
+          why = "the step map runs docmap's generator (scripts/gen_map.lua finds it in .deps/)",
+        },
+      },
+    },
+    steps = {
+      ["workflow-in-sync"] = { preset = "workflow-in-sync" },
+      -- the layer rules of scripts/gen_map.lua: its exit code is the gate. Not --check: docs/map/ is in .gitignore,
+      -- so a fresh checkout has no map to compare against.
+      map = { run = { "nvim", "-n", "-i", "NONE", "--headless", "-l", "scripts/gen_map.lua" } },
+    },
+  },
 }
