@@ -20,6 +20,9 @@ function M.register(_cfg)
     -- `:Image paste` has actually spawned the persistent clipboard helper --
     -- see images.win_clipboard_worker.
     require("images.win_clipboard_worker").shutdown()
+    -- A `:Image screenshot` still waiting for the snip (Windows): its
+    -- PowerShell watcher belongs to this editor and ends with it.
+    if package.loaded["images.screenshot"] then require("images.screenshot").cancel() end
   end, {
     group = autocmd.group("images.autocmds", true),
     desc = "images: clear the displayed image before quitting",

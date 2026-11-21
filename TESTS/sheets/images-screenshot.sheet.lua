@@ -1,9 +1,9 @@
 -- Feature images.screenshot (TESTS/sheets/features.lua): `:Image screenshot` starts the interactive screen selection
--- of the platform (Windows: the Snipping Tool through `explorer ms-screenclip:`, then `powershell` polls the
--- clipboard for the snip; macOS `screencapture -i`; Wayland `slurp` + `grim`; X11 `maim -s`). A selection needs a
--- person: here the programs are recording stand-ins (`fakes`) and nobody selects, so the capture ends as cancelled
--- (Windows: timed out, after a short poll) and nothing is written or linked. The poll on Windows is what `testing
--- perf` counts: one `powershell` per tick.
+-- of the platform (Windows: one `powershell` that takes the clipboard baseline, opens the Snipping Tool through
+-- `ms-screenclip:` and waits for the snip itself; macOS `screencapture -i`; Wayland `slurp` + `grim`; X11 `maim -s`).
+-- A selection needs a person: here the programs are recording stand-ins (`fakes`) and nobody selects, so the capture
+-- ends without a picture (Windows: the stand-in watcher ends without an answer) and nothing is written or linked.
+-- What `testing perf` counts on Windows: exactly one `powershell` for the whole wait (it used to be one per poll tick).
 return {
   id = "images.screenshot",
   feature = "images.screenshot",
@@ -24,8 +24,9 @@ return {
     {
       expect = [[(function()
         if vim.fn.has("win32") == 1 then
-          return _G.eq(_G.faked("explorer")[1].argv, { "ms-screenclip:" }) and #_G.faked("powershell") >= 2
-            and _G.loud():find("timed out", 1, true) ~= nil
+          local ps = _G.faked("powershell")
+          return _G.eq(#ps, 1) and table.concat(ps[1].argv, " "):find("ms-screenclip:", 1, true) ~= nil
+            and _G.eq(#_G.faked("explorer"), 0) and _G.loud():find("without an answer", 1, true) ~= nil
         elseif vim.fn.has("mac") == 1 then
           return _G.eq(_G.faked("screencapture")[1].argv[1], "-i") and _G.loud():find("cancelled", 1, true) ~= nil
         end

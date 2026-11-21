@@ -26,12 +26,12 @@
 ---
 --- * Windows — the least certain of the three. There is no documented CLI
 ---   invocation that makes the modern Snipping Tool write directly to a file.
----   `explorer.exe ms-screenclip:` launches the selection UI (the same as
+---   Opening the `ms-screenclip:` URI launches the selection UI (the same as
 ---   Win+Shift+S) but returns immediately and copies the result to the
----   clipboard when finished — with no signal for when that happens. This
----   module then polls the clipboard on a timer (non-blocking) for a *new*
----   image, with a timeout. The polling/comparison logic itself was verified
----   manually against a clipboard changed on an artificial delay; whether
+---   clipboard when finished — with no signal for when that happens. One
+---   PowerShell process (see the Windows section below) takes the clipboard
+---   baseline, opens the URI, polls for a *new* image in its own loop with a
+---   timeout and answers once; Neovim only waits for that answer. Whether
 ---   `ms-screenclip:` launches as documented on every Windows version could
 ---   not be simulated in this environment — `:Image paste` remains the
 ---   unchanged, proven two-step route should this automation ever fail.
@@ -131,125 +131,173 @@ local function capture_linux(out, callback)
 end
 
 -- ── Windows ──────────────────────────────────────────────────────────────────
+--
+-- **One PowerShell for the whole wait.** This used to start a fresh
+-- `powershell -STA` for the baseline and then one per poll tick (every 600 ms,
+-- up to 100 for the 60 s timeout; `testing perf` counted them), each paying
+-- the PowerShell start and the `System.Windows.Forms` load again -- far more
+-- under an endpoint scanner. Now a single process reads the baseline, opens
+-- the snip UI itself (`Start-Process 'ms-screenclip:'`: the same ShellExecute
+-- of the URI that `explorer ms-screenclip:` did, minus a process), polls the
+-- clipboard in its own loop and answers exactly once:
+--
+--   IMAGESNVIM:0:          a new image, written to the target file
+--   IMAGESNVIM:2:          the timeout passed without one
+--   IMAGESNVIM:1:<reason>  something failed (the snip UI would not start, ...)
+--
+-- Not the persistent `images.win_clipboard_worker` of `:Image paste`: its
+-- protocol is one request, one answer, under a per-request timeout of a few
+-- seconds, and it can be switched off (`paste.windows_persistent_helper`).
+-- Polling it would still mean a request per tick for up to a minute; a script
+-- that waits on its own needs no traffic at all until it has the answer.
+--
+-- The script is one line without `"`, `|`, `&`, `<`, `>`, `%` or `^`: the
+-- test stand-ins on Windows are `.cmd` files, and cmd reads those characters
+-- even inside an argument.
 
---- PowerShell fragment: print the current clipboard image as base64, or
---- nothing when there is none. Reused for the baseline snapshot and for every
---- poll tick.
-local PS_READ_CLIPBOARD_B64 = table.concat({
-  "Add-Type -AssemblyName System.Windows.Forms,System.Drawing;",
-  "$img = [System.Windows.Forms.Clipboard]::GetImage();",
-  "if ($img -eq $null) { exit 0 };",
-  "$ms = New-Object System.IO.MemoryStream;",
-  "$img.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png);",
-  "[Convert]::ToBase64String($ms.ToArray());",
-}, " ")
-
---- Read the current clipboard image content, asynchronously.
----@param callback fun(data: string|nil)
----@return nil
-local function read_clipboard_image_async(callback)
-  vim.system(
-    { "powershell.exe", "-NoProfile", "-NonInteractive", "-STA", "-Command", PS_READ_CLIPBOARD_B64 },
-    { text = true },
-    function(result)
-      vim.schedule(function()
-        local out = vim.trim(result.stdout or "")
-        if result.code ~= 0 or out == "" then
-          callback(nil)
-          return
-        end
-        local ok, decoded = pcall(vim.base64.decode, out)
-        callback((ok and decoded ~= "") and decoded or nil)
-      end)
-    end
-  )
+--- The watcher script: baseline, snip UI, poll, one answer.
+---@param out string target file
+---@param timeout_ms integer
+---@param interval_ms integer
+---@return string
+local function watch_script(out, timeout_ms, interval_ms)
+  return table.concat({
+    "try {",
+    "Add-Type -AssemblyName System.Windows.Forms,System.Drawing -ErrorAction Stop;",
+    "function Snap { $img = [System.Windows.Forms.Clipboard]::GetImage();",
+    "if ($null -eq $img) { return '' };",
+    "$ms = New-Object System.IO.MemoryStream;",
+    "$img.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png); $img.Dispose();",
+    "return [Convert]::ToBase64String($ms.ToArray()) };",
+    "$base = Snap;",
+    "Start-Process 'ms-screenclip:' -ErrorAction Stop;",
+    ("$deadline = (Get-Date).AddMilliseconds(%d);"):format(timeout_ms),
+    "while ((Get-Date) -lt $deadline) {",
+    ("Start-Sleep -Milliseconds %d;"):format(interval_ms),
+    "if (-not [System.Windows.Forms.Clipboard]::ContainsImage()) { continue };",
+    "$cur = Snap;",
+    "if ($cur -ne '' -and $cur -ne $base) {",
+    ("[System.IO.File]::WriteAllBytes(%s, [Convert]::FromBase64String($cur));"):format(require("images.ps_path").expr(out)),
+    "Write-Output 'IMAGESNVIM:0:'; exit 0 } };",
+    "Write-Output 'IMAGESNVIM:2:'",
+    "} catch { Write-Output ('IMAGESNVIM:1:' + $_.Exception.Message.Replace([char]13, ' ').Replace([char]10, ' ')) }",
+  }, " ")
 end
 
---- Launch the snip UI, wait on a timer (non-blocking) for a *new* clipboard
---- image, then write it to `out`.
+--- How long past the configured timeout the process may stay silent before
+--- it is killed: the script's own deadline starts only once PowerShell runs,
+--- and a PowerShell start under an endpoint scanner can take seconds. Without
+--- this backstop a watcher that never answers (hung on load) would hang the
+--- capture for good. A field so a spec can shorten it.
+M.backstop_grace_ms = 15000
+
+--- The Windows capture in flight, if any: `cancel()` and `VimLeavePre` end it.
+---@type { finish: fun(ok: boolean, err: string|nil) }|nil
+local running = nil
+
+--- Start the watcher and report its single answer.
 ---@param out string
 ---@param callback fun(ok: boolean, err: string|nil)
 ---@return nil
 local function capture_windows(out, callback)
-  read_clipboard_image_async(function(baseline)
-    vim.system({ "explorer.exe", "ms-screenclip:" }, { text = true }, function(launch)
-      vim.schedule(function()
-        if launch.code ~= 0 then
-          callback(false, "could not launch the Snipping Tool")
-          return
-        end
+  local c = cfg().display.screenshot
+  local timeout_ms = valid_ms(c.windows_timeout_ms, 60000)
+  local interval_ms = valid_ms(c.windows_poll_interval_ms, 600)
 
-        local c = cfg().display.screenshot
-        local timeout_ms = valid_ms(c.windows_timeout_ms, 60000)
-        local interval_ms = valid_ms(c.windows_poll_interval_ms, 600)
-        local elapsed = 0
-        -- A PowerShell `-STA` start routinely takes longer than the poll
-        -- interval, so without this a tick can fire while the previous
-        -- tick's read is still in flight -- and once the snip lands, every
-        -- one of those in-flight reads sees `current ~= baseline` and
-        -- re-enters the success path below. `done` makes `M.capture`'s
-        -- documented single-shot contract (`callback(ok, err)` runs once)
-        -- actually hold; `pending` throttles a tick against the previous
-        -- one still running, instead of starting a new PowerShell process on
-        -- top of it every 600 ms regardless.
-        --
-        -- `elapsed` advances on every tick unconditionally, independent of
-        -- `pending`/the read it may or may not start: a hung
-        -- `read_clipboard_image_async` call (its callback never invoked --
-        -- e.g. a spawned `powershell.exe -STA` blocked by AV/EDR hooking)
-        -- must not freeze the timeout along with it, or the poll runs
-        -- forever with no error and no completion.
-        local done = false
-        local pending = false
+  -- A second capture while one waits: the older one gives way, its process
+  -- is killed and it reports "cancelled", so only one snip UI and one
+  -- watcher are ever about.
+  if running then running.finish(false, "cancelled") end
 
-        local timer = assert(vim.uv.new_timer())
-        local function stop()
-          if not timer:is_closing() then
-            timer:stop()
-            timer:close()
-          end
-        end
+  local done = false
+  local proc, timer = nil, nil
+  local buffer = ""
 
-        ---@param ok boolean
-        ---@param err string|nil
-        local function finish(ok, err)
-          if done then return end
-          done = true
-          stop()
-          callback(ok, err)
-        end
+  ---@param ok boolean
+  ---@param err string|nil
+  local function finish(ok, err)
+    if done then return end
+    done = true
+    if running and running.finish == finish then running = nil end
+    if timer and not timer:is_closing() then
+      timer:stop()
+      timer:close()
+    end
+    if proc then pcall(proc.kill, proc, "sigkill") end
+    callback(ok, err)
+  end
+  running = { finish = finish }
 
-        timer:start(
-          interval_ms,
-          interval_ms,
-          vim.schedule_wrap(function()
-            if done then return end
-            elapsed = elapsed + interval_ms
-            if elapsed >= timeout_ms then
-              finish(false, "timed out — no new capture detected in the clipboard")
-              return
-            end
-            if pending then return end
-            pending = true
-            read_clipboard_image_async(function(current)
-              pending = false
-              if done then return end
-              if current and current ~= baseline then
-                local fd = io.open(out, "wb")
-                if not fd then
-                  finish(false, "target file not writable: " .. out)
-                  return
-                end
-                fd:write(current)
-                fd:close()
-                finish(true)
-              end
-            end)
-          end)
-        )
-      end)
+  ---@param code string
+  ---@param message string
+  local function on_answer(code, message)
+    if code == "0" then
+      local stat = vim.uv.fs_stat(out)
+      if not stat or stat.size == 0 then
+        finish(false, "target file not writable: " .. out)
+        return
+      end
+      finish(true)
+    elseif code == "2" then
+      finish(false, "timed out — no new capture detected in the clipboard")
+    else
+      local reason = vim.trim(message or "")
+      finish(false, reason ~= "" and reason or "could not watch the clipboard")
+    end
+  end
+
+  local ok, obj = pcall(vim.system, {
+    "powershell",
+    "-NoProfile",
+    "-NonInteractive",
+    "-STA",
+    "-Command",
+    watch_script(out, timeout_ms, interval_ms),
+  }, {
+    text = true,
+    stdout = function(err, data)
+      if err or not data then return end
+      buffer = buffer .. data
+      for line in buffer:gmatch("[^\n]*\n") do
+        local code, message = line:gsub("\r?\n$", ""):match("^IMAGESNVIM:(%d):(.*)$")
+        if code then vim.schedule(function()
+          on_answer(code, message)
+        end) end
+      end
+      buffer = buffer:match("[^\n]*$") or ""
+    end,
+    stderr = function() end,
+  }, function(result)
+    vim.schedule(function()
+      -- After the answer this is the process ending as it should; without
+      -- one, the watcher died or never got going.
+      local detail = vim.trim(result.stderr or "")
+      finish(false, "the clipboard watcher ended without an answer" .. (detail ~= "" and (": " .. detail) or ""))
     end)
   end)
+  if not ok or not obj then
+    finish(false, "could not start PowerShell to watch the clipboard")
+    return
+  end
+  if done then return end -- the spawn answered synchronously (a stand-in)
+  proc = obj
+
+  timer = assert(vim.uv.new_timer())
+  timer:start(
+    timeout_ms + M.backstop_grace_ms,
+    0,
+    vim.schedule_wrap(function()
+      finish(false, "timed out — no new capture detected in the clipboard")
+    end)
+  )
+end
+
+--- End a capture that is still waiting for the snip (Windows): the watcher is
+--- killed and its callback runs with `false, "cancelled"`. A no-op when none
+--- waits, and on macOS/Linux, where the platform tool itself ends the wait.
+---@return nil
+function M.cancel()
+  if running then running.finish(false, "cancelled") end
 end
 
 -- ── Public API ───────────────────────────────────────────────────────────────
