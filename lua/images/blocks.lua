@@ -366,9 +366,10 @@ end
 --- Sample every path in `paths` to `cols`x`rows` cells, in **one** ImageMagick
 --- process, and hand back the raw RGB bytes for all of them concatenated.
 ---
---- Synchronous. The async form is `sample_async`; this one exists because the
---- single-image path (`images.ascii`) is called from a place that already
---- blocks and gains nothing from a callback.
+--- Synchronous: it blocks the editor for as long as ImageMagick runs, so no
+--- path a user reaches by a key calls it any more (`images.ascii` went to
+--- `sample_async`, the 138-230 ms freeze `testing perf` measured). Kept for
+--- scripts and specs that want the bytes in one line.
 ---@param paths string[]
 ---@param cols integer
 ---@param rows integer

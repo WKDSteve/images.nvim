@@ -57,43 +57,52 @@ function M.human_size(bytes)
   return ("%.1f %s"):format(value, units[unit])
 end
 
---- Collect metadata.
----@param path string absolute path
----@return Images.Info|nil
+---@internal
+--- The half before ImageMagick: the stat, the cache key and the skeleton both
+--- forms of `collect` fill.
+---@param path string
+---@return Images.Info|nil info
+---@return string|nil key  nil together with `info` on a cache hit
 ---@return string|nil err
-function M.collect(path)
+local function begin(path)
   local stat = vim.uv.fs_stat(path)
-  if not stat then return nil, "file not found: " .. path end
+  if not stat then return nil, nil, "file not found: " .. path end
 
   local mtime = stat.mtime and stat.mtime.sec or 0
   local key = ("%s:%d:%d"):format(path, mtime, stat.size)
   local hit = cache.get(key)
-  if hit then return hit end
+  if hit then return hit, nil, nil end
+  return { path = path, bytes = stat.size, mtime = mtime }, key, nil
+end
 
-  ---@type Images.Info
-  local info = {
-    path = path,
-    bytes = stat.size,
-    mtime = mtime,
-  }
+--- `identify` as a subcommand of `magick`, not as its own binary: on Windows
+--- `convert.exe`/`identify.exe` collide with the system programs of the same
+--- name in System32.
+---@param path string
+---@return string[]
+local function identify_argv(path)
+  return { "magick", "identify", "-format", "%m %w %h", path .. "[0]" }
+end
 
-  if require("lib.nvim.cross.executable").exists("magick") then
-    -- `identify` as a subcommand of `magick`, not as its own binary: on
-    -- Windows `convert.exe`/`identify.exe` collide with the system programs of
-    -- the same name in System32.
-    local res = require("images.proc").sync({ "magick", "identify", "-format", "%m %w %h", path .. "[0]" }, { text = true })
-    if res.code == 0 and res.stdout then
-      local fmt, w, h = res.stdout:match("^(%S+)%s+(%d+)%s+(%d+)")
-      info.format = fmt
-      info.width = tonumber(w)
-      info.height = tonumber(h)
-    end
+---@internal
+--- The half after ImageMagick (`res` nil when it was not asked): read its
+--- answer, let the header fill what it could not say, remember the result.
+---@param info Images.Info
+---@param key string
+---@param res vim.SystemCompleted|nil
+---@return Images.Info
+local function finish(info, key, res)
+  if res and res.code == 0 and type(res.stdout) == "string" then
+    local fmt, w, h = res.stdout:match("^(%S+)%s+(%d+)%s+(%d+)")
+    info.format = fmt
+    info.width = tonumber(w)
+    info.height = tonumber(h)
   end
 
   -- Whatever ImageMagick could not say -- because it is not installed, or
   -- because `identify` failed on this file -- the header may still say.
   if not (info.width and info.height) then
-    local px = require("images.pixels").read(path)
+    local px = require("images.pixels").read(info.path)
     if px then
       info.width, info.height = px.width, px.height
     end
@@ -101,6 +110,56 @@ function M.collect(path)
 
   cache.set(key, info)
   return info
+end
+
+--- Collect metadata.
+---@param path string absolute path
+---@return Images.Info|nil
+---@return string|nil err
+function M.collect(path)
+  local info, key, err = begin(path)
+  if not info then return nil, err end
+  if not key then return info end
+
+  local res = nil
+  if require("lib.nvim.cross.executable").exists("magick") then
+    res = require("images.proc").sync(identify_argv(path), { text = true })
+  end
+  return finish(info, key, res)
+end
+
+--- Same, without blocking: `magick identify` runs in the background and
+--- `callback(info, err)` runs on the main loop exactly once -- also on a cache
+--- hit, and also when the process could not even be started. The same cache as
+--- `collect`, so either form answers the other's file for free.
+---@param path string absolute path
+---@param callback fun(info: Images.Info|nil, err: string|nil)
+---@return nil
+function M.collect_async(path, callback)
+  local info, key, err = begin(path)
+  if not info or not key then
+    vim.schedule(function()
+      callback(info, err)
+    end)
+    return
+  end
+
+  local function answer(res)
+    vim.schedule(function()
+      local ok, result = pcall(finish, info, key, res)
+      if ok then
+        callback(result, nil)
+      else
+        callback(nil, tostring(result))
+      end
+    end)
+  end
+
+  if not require("lib.nvim.cross.executable").exists("magick") then
+    answer(nil)
+    return
+  end
+  if not require("images.proc").async(identify_argv(path), { text = true }, answer) then answer(nil) end
 end
 
 --- Metadata as lines, ready to display.

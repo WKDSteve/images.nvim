@@ -1,8 +1,9 @@
 -- Feature images.ascii (TESTS/sheets/features.lua): in a terminal that draws no pictures (the child editor has none)
 -- `:Image` on the link under the cursor shows the image as block characters in a float, sampled by ImageMagick.
--- That sample is a blocking start of images.proc on the main loop: `testing perf` measures how long the editor
--- waits for it. On a runner without magick the stand-in takes the call and writes no pixels: the sheet then proves the
--- call names the image and that the failure is said instead of a broken float.
+-- The float opens at once with a placeholder and the sample runs in the background (it used to block the editor
+-- 138-230 ms, measured by `testing perf`), so the sheet waits for the drawn picture, not for the float. On a runner
+-- without magick the stand-in takes the call and writes no pixels: the sheet then proves the call names the image and
+-- that the failure is said instead of a broken float.
 return {
   id = "images.ascii",
   feature = "images.ascii",
@@ -19,7 +20,7 @@ return {
     { lua = [[_G.cursor_on("hello.png")]], note = "the cursor on the link to hello.png" },
     { keys = ":Image<CR>", note = ":Image" },
     {
-      wait = [[require("images.ascii").is_open() or _G.loud() ~= ""]],
+      wait = [[require("images.ascii").is_drawn() or _G.loud() ~= ""]],
       timeout = 10000,
       note = "the blocks are drawn, or the failure is said",
     },
@@ -30,7 +31,7 @@ return {
           return _G.starts(table.concat(argv, " "):match("%S*hello%.png%S*") or "", _G.desk_root .. "/assets/hello.png")
             and not require("images.ascii").is_open()
         end
-        return _G.eq(_G.loud(), "") and require("images.ascii").is_open()
+        return _G.eq(_G.loud(), "") and require("images.ascii").is_drawn()
       end)()]],
       note = "a float of block characters (with a stand-in: the call named the image, no float)",
     },
