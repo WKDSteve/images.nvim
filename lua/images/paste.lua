@@ -478,8 +478,9 @@ end
 ---@param win integer window current when the paste started
 ---@param rel string path as it goes into the link (relative, absolute, or env-rooted -- see `resolve_link_path`)
 ---@param alt string|nil alt text; empty or nil = no alt text
+---@param sel ImagesNvim.PasteSelection|nil a visual selection the link replaces (its text is the alt text)
 ---@return nil
-local function insert_link(buf, win, rel, alt)
+local function insert_link(buf, win, rel, alt, sel)
   if not vim.api.nvim_buf_is_valid(buf) then
     notify().warn("the buffer is gone — the image is at " .. rel)
     return
@@ -505,7 +506,16 @@ local function insert_link(buf, win, rel, alt)
   local link = (alt and alt ~= "") and c.alt_link_template:format(alt, forward) or c.link_template:format(forward)
 
   local pos = vim.api.nvim_win_get_cursor(win)
-  local inserted = pcall(vim.api.nvim_buf_set_text, buf, pos[1] - 1, pos[2], pos[1] - 1, pos[2], { link })
+  if sel then pos = { sel.srow + 1, sel.scol } end
+  local inserted = pcall(
+    vim.api.nvim_buf_set_text,
+    buf,
+    pos[1] - 1,
+    pos[2],
+    sel and sel.erow or pos[1] - 1,
+    sel and sel.ecol or pos[2],
+    { link }
+  )
   if not inserted then
     notify().warn("could not insert the link — the image is at " .. rel)
     return
@@ -554,8 +564,9 @@ end
 ---@param filename_override string|nil already sanitised; nil = template
 ---@param capture fun(out: string, cb: fun(ok: boolean, err: string|nil))
 ---@param path_mode string|nil see `resolve_link_path`; nil = "relative"
+---@param sel ImagesNvim.PasteSelection|nil visual selection to replace by the link (its text becomes the alt text)
 ---@return nil
-local function paste_with_name(buf, filename_override, capture, path_mode)
+local function paste_with_name(buf, filename_override, capture, path_mode, sel)
   if vim.api.nvim_buf_get_name(buf) == "" then
     notify().error("the buffer has no file name — save it first")
     return
@@ -604,8 +615,12 @@ local function paste_with_name(buf, filename_override, capture, path_mode)
     end
 
     local alt = nil
-    if cfg().paste.ask_alt_text then alt = await_alt_text() end
-    insert_link(buf, win, rel, alt)
+    if sel then
+      alt = sel.text -- the selection IS the alt text: nothing left to ask
+    elseif cfg().paste.ask_alt_text then
+      alt = await_alt_text()
+    end
+    insert_link(buf, win, rel, alt, sel)
   end, nil, { tag = "images.paste" })
 end
 
@@ -623,7 +638,7 @@ end
 ---@param force_ask boolean|nil  # prompt even when `paste.ask_filename` is off
 ---@param path_mode string|nil see `resolve_link_path`; nil = "relative"
 ---@return nil
-local function capture_with_optional_name(capture, direct_name, force_ask, path_mode)
+local function capture_with_optional_name(capture, direct_name, force_ask, path_mode, sel)
   local buf = vim.api.nvim_get_current_buf()
 
   if direct_name then
@@ -632,7 +647,7 @@ local function capture_with_optional_name(capture, direct_name, force_ask, path_
       notify().error("invalid file name: " .. direct_name)
       return
     end
-    paste_with_name(buf, sanitized, capture, path_mode)
+    paste_with_name(buf, sanitized, capture, path_mode, sel)
     return
   end
 
@@ -641,7 +656,7 @@ local function capture_with_optional_name(capture, direct_name, force_ask, path_
   -- keypress previously had no way to name the file at all -- only
   -- `:Image paste {name}` did.
   if not (cfg().paste.ask_filename or force_ask) then
-    paste_with_name(buf, nil, capture, path_mode)
+    paste_with_name(buf, nil, capture, path_mode, sel)
     return
   end
 
@@ -653,7 +668,7 @@ local function capture_with_optional_name(capture, direct_name, force_ask, path_
       notify().info("cancelled")
       return
     end
-    paste_with_name(buf, sanitize_filename(name), capture, path_mode)
+    paste_with_name(buf, sanitize_filename(name), capture, path_mode, sel)
   end)
 end
 
@@ -730,18 +745,79 @@ end
 -- Exposed for tests: drives the interactive choice with a faked kit()/vim.ui.select.
 M.resolve_path_mode = resolve_path_mode
 
---- Save the clipboard image and insert the link at the cursor.
+---@param buf integer
+---@param row integer 0-based
+---@param col integer 0-based byte column of a character
+---@return integer col the byte column right behind that character (clamped to the line)
+local function after_char(buf, row, col)
+  local line = vim.api.nvim_buf_get_lines(buf, row, row + 1, false)[1] or ""
+  if col >= #line then return #line end
+  return col + #vim.fn.strcharpart(line:sub(col + 1), 0, 1)
+end
+
+---@class ImagesNvim.PasteSelection
+---@field srow integer 0-based start row
+---@field scol integer 0-based start byte column
+---@field erow integer 0-based end row
+---@field ecol integer 0-based end byte column (exclusive)
+---@field text string the selected text, newlines collapsed to single spaces
+
+--- The last visual selection (`'<`/`'>`, any of v, V, CTRL-V) as a range plus
+--- its text for the alt text: line breaks (and the indentation behind them)
+--- become single spaces so the link stays on one line, and `]`/`[` are escaped
+--- so they cannot end the alt text early. A block selection is replaced as its
+--- bounding stream (first to last selected character). Nil when there is none
+--- or it is empty.
+---@param buf integer|nil
+---@return ImagesNvim.PasteSelection|nil
+function M.visual_selection(buf)
+  buf = buf or vim.api.nvim_get_current_buf()
+  local mode = vim.fn.visualmode()
+  if mode == "" then return nil end
+  local a = vim.api.nvim_buf_get_mark(buf, "<")
+  local b = vim.api.nvim_buf_get_mark(buf, ">")
+  if a[1] == 0 or b[1] == 0 then return nil end
+  -- Linewise marks carry a huge column (MAXCOL); getregionpos wants a real one.
+  for _, m in ipairs({ a, b }) do
+    local line = vim.api.nvim_buf_get_lines(buf, m[1] - 1, m[1], false)[1] or ""
+    m[2] = math.max(0, math.min(m[2], #line - 1))
+  end
+  local ok, regions = pcall(vim.fn.getregionpos, { buf, a[1], a[2] + 1, 0 }, { buf, b[1], b[2] + 1, 0 }, { type = mode })
+  if not ok or type(regions) ~= "table" or #regions == 0 then return nil end
+  local first, last = regions[1][1], regions[#regions][2]
+  local lines = {}
+  for _, r in ipairs(regions) do
+    local row = r[1][2] - 1
+    local text = vim.api.nvim_buf_get_text(buf, row, r[1][3] - 1, r[2][2] - 1, after_char(buf, r[2][2] - 1, r[2][3] - 1), {})
+    lines[#lines + 1] = vim.trim(table.concat(text, " "))
+  end
+  local srow, scol = first[2] - 1, first[3] - 1
+  local erow, ecol = last[2] - 1, last[3] - 1
+  ecol = after_char(buf, erow, ecol) -- exclusive end, behind the last selected character
+  local text = table.concat(
+    vim.tbl_filter(function(l)
+      return l ~= ""
+    end, lines),
+    " "
+  )
+  text = text:gsub("%s+", " "):gsub("([%[%]])", "\\%1")
+  if text == "" then return nil end
+  return { srow = srow, scol = scol, erow = erow, ecol = ecol, text = text }
+end
+
+--- Save the clipboard image and insert the link at the cursor (or in place of a visual selection).
 ---@param name string|nil a file name already given (`:Image paste {name}`) — skips any name prompt
 ---@param force_ask boolean|nil  # prompt for a name even when `ask_filename` is off
 ---@param path_mode string|nil already given via `path=...` (see `resolve_path_mode`); nil = `paste.default_path_mode`, asked interactively when that is `false`
 ---@return nil
-function M.run(name, force_ask, path_mode)
+---@param sel ImagesNvim.PasteSelection|nil a visual selection (see `M.visual_selection`) the link replaces; its text becomes the alt text
+function M.run(name, force_ask, path_mode, sel)
   resolve_path_mode(path_mode, function(mode)
     if not mode then
       notify().info("cancelled")
       return
     end
-    capture_with_optional_name(clipboard_to_file, name, force_ask, mode)
+    capture_with_optional_name(clipboard_to_file, name, force_ask, mode, sel)
   end)
 end
 

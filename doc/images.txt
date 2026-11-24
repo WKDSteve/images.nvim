@@ -175,6 +175,11 @@ Calling |images.setup()| is optional when using `opts`.
                         `path=`; any other first word is the file name.
                         Afterwards the cursor sits inside the link's empty
                         alt text in insert mode (`paste.link_cursor`).
+                        With a visual selection (`:'<,'>Image paste`, or the
+                        paste keymap in visual mode) the selected text is
+                        replaced by the link and becomes its alt text
+                        (line breaks turn into spaces, `[`/`]` are escaped);
+                        no alt-text prompt then.
 
 :Image screenshot       Take a screenshot interactively and insert it like
                         `:Image paste`, without needing the clipboard as an

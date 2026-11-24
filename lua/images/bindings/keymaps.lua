@@ -41,12 +41,19 @@ local ACTIONS = {
     end,
   },
   paste = {
-    desc = "paste an image from the clipboard",
+    desc = "paste an image from the clipboard (with a selection: its text becomes the alt text)",
+    mode = { "n", "x" },
     -- A count asks for the name: `M.paste(name)` has always accepted one, but
     -- a bare lhs carries no text, so `:Image paste {name}` was the only way
     -- in. `1<leader>ip` prompts; without a count nothing changes.
     rhs = function()
-      require("images").paste(nil, vim.v.count ~= 0)
+      local sel
+      if vim.fn.mode():find("^[vV\22]") then
+        -- Leave visual mode first: only then are the `'<`/`'>` marks current.
+        vim.cmd("normal! \27")
+        sel = require("images.paste").visual_selection()
+      end
+      require("images").paste(nil, vim.v.count ~= 0, nil, sel)
     end,
   },
   screenshot = {
@@ -90,7 +97,7 @@ local function map_double_click(buf)
     if not require("images").hover() then
       -- No image link hit: the double click should behave normally (select the
       -- word) rather than being swallowed silently.
-      vim.cmd("normal! viw")
+      vim.cmd("normal! \27")
     end
   end, { buffer = buf }, "images: show image on double-clicking a link")
 end
