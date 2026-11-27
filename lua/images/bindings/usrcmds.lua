@@ -211,7 +211,9 @@ function M.register(cfg)
             name = second
           end
           -- `:'<,'>Image paste`: the selected text becomes the alt text and is replaced by the link.
-          local sel = has_range(ctx) and require("images.paste").visual_selection() or nil
+          local paste = require("images.paste")
+          local sel = has_range(ctx) and paste.range_is_selection(ctx.range.line1, ctx.range.line2) and paste.visual_selection()
+            or nil
           require("images").paste(name, nil, mode, sel)
         end,
       },

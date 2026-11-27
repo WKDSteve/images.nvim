@@ -60,4 +60,15 @@ return function(H)
   paste.paste_with_name(buf, "shot.png", capture)
   H.eq(vim.api.nvim_buf_get_lines(buf, 0, -1, false)[1], "![](assets/shot.png)abc", "no selection: unchanged")
   pcall(vim.api.nvim_buf_delete, buf, { force = true })
+
+  -- `:5,7Image paste` after an earlier selection: the range is not the selection, the marks are stale.
+  buf = make_buf({ "one", "two", "three", "four", "five", "six", "seven", "eight" })
+  vim.cmd("normal! ggjVj" .. vim.api.nvim_replace_termcodes("<Esc>", true, true, true)) -- marks on lines 2-3
+  H.ok(paste.range_is_selection(2, 3, buf), "the range of the marks is the selection")
+  H.ok(not paste.range_is_selection(5, 7, buf), "a plain range with other lines than the marks is no selection")
+  H.ok(not paste.range_is_selection(2, 7, buf), "same first line, other last line: no selection")
+  pcall(vim.api.nvim_buf_delete, buf, { force = true })
+  buf = make_buf({ "one" })
+  H.ok(not paste.range_is_selection(1, 1, buf), "no marks at all: no selection")
+  pcall(vim.api.nvim_buf_delete, buf, { force = true })
 end

@@ -805,6 +805,21 @@ function M.visual_selection(buf)
   return { srow = srow, scol = scol, erow = erow, ecol = ecol, text = text }
 end
 
+--- Whether the command range `line1,line2` is the last visual selection, i.e. its lines are those of the
+--- `'<`/`'>` marks. A plain range such as `:5,7Image paste` has a range count too, but not a selection: the
+--- marks then belong to an earlier selection and must not decide what the link replaces.
+---@param line1 integer
+---@param line2 integer
+---@param buf integer|nil
+---@return boolean
+function M.range_is_selection(line1, line2, buf)
+  buf = buf or vim.api.nvim_get_current_buf()
+  local a = vim.api.nvim_buf_get_mark(buf, "<")
+  local b = vim.api.nvim_buf_get_mark(buf, ">")
+  if a[1] == 0 or b[1] == 0 then return false end
+  return a[1] == line1 and b[1] == line2
+end
+
 --- Save the clipboard image and insert the link at the cursor (or in place of a visual selection).
 ---@param name string|nil a file name already given (`:Image paste {name}`) — skips any name prompt
 ---@param force_ask boolean|nil  # prompt for a name even when `ask_filename` is off
