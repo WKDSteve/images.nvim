@@ -160,6 +160,21 @@ return function(H)
   vim.bo[buf].filetype = "markdown"
   require("images.config").setup({})
   H.ok(menu.submenu(nil, buf) ~= nil, "submenu() wraps a non-empty item list")
+  local sub = menu.submenu(nil, buf)
+  H.eq(sub.name, "Images", "submenu(): the default label has no leading blanks")
+  H.ok(type(sub.icon) == "string" and sub.icon ~= "", "submenu(): the fly-out has an icon")
+  -- The glyph goes in the icon column, never into the label: a label that starts with
+  -- spaces indents its row past every other one. Checked for both entry lists.
+  local function check_icons(list, where)
+    for _, item in ipairs(list) do
+      if item.name ~= "separator" and not item.__heading then
+        H.ok(not item.name:match("^%s"), where .. ": no leading blank in " .. item.name)
+        H.ok(type(item.icon) == "string" and item.icon ~= "", where .. ": an icon for " .. item.name)
+      end
+    end
+  end
+  check_icons(sub.items, "items()")
+  check_icons(menu.items_for_path("/x/shot.png"), "items_for_path()")
   require("images.config").setup({ menu = { enable = false } })
   H.eq(menu.submenu(nil, buf), nil, "submenu() is nil when items() is empty")
 

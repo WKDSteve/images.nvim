@@ -19,6 +19,32 @@
 --- Opt out via `config.menu.enable`.
 
 local contextmenu = require("ui.contextmenu")
+local nerd = require("lib.nvim.ui.nerd_font")
+
+---@internal
+--- One glyph per entry, drawn in the renderer's icon column (`opts.icon`), never in the
+--- label: a label that starts with spaces or a glyph indents its row past every other one.
+--- ASCII fallback without a declared Nerd Font.
+---@type table<string, string>
+local ICON = {
+  show = nerd.glyph("F0208", "v"), -- eye-outline
+  gallery = nerd.glyph("F02E9", "g"), -- image-multiple
+  next = nerd.glyph("F0054", ">"), -- arrow-right
+  prev = nerd.glyph("F004D", "<"), -- arrow-left
+  paste = nerd.glyph("F0192", "p"), -- content-paste
+  screenshot = nerd.glyph("F0100", "s"), -- camera
+  info = nerd.glyph("F02FC", "i"), -- information-outline
+  ocr = nerd.glyph("F0A5B", "t"), -- text-recognition
+  redact = nerd.glyph("F01B4", "#"), -- trash-can
+  export = nerd.glyph("F0226", "P"), -- file-pdf-box
+  scale = nerd.glyph("F0BB1", "%"), -- swap-horizontal
+  optimise = nerd.glyph("F0BB1", "o"), -- swap-horizontal
+  convert = nerd.glyph("F0BB1", "c"), -- swap-horizontal
+  zen = nerd.glyph("F0208", "z"), -- eye-outline
+  replace = nerd.glyph("F0192", "r"), -- content-paste
+  compare = nerd.glyph("F0BB1", "="), -- swap-horizontal
+  images = nerd.glyph("F02E9", "I"), -- image-multiple
+}
 
 ---@internal
 ---@param bin string
@@ -37,32 +63,32 @@ local function processing_entries(path)
   local magick = have("magick")
   return contextmenu.entry(have("tesseract"), "Read text (OCR)", function()
     images.ocr(path)
-  end),
+  end, nil, { icon = ICON.ocr }),
     contextmenu.entry(magick, "Redact (black out areas)", function()
       images.redact(path)
-    end),
+    end, nil, { icon = ICON.redact }),
     contextmenu.entry(true, "Export as PDF", function()
       images.export(path)
-    end),
+    end, nil, { icon = ICON.export }),
     contextmenu.entry(magick, "Scale copy…", function()
       vim.ui.input({ prompt = "Scale to (50%, 800x600, 800): " }, function(spec)
         if spec and spec ~= "" then images.scale(spec, path) end
       end)
-    end),
+    end, nil, { icon = ICON.scale }),
     contextmenu.entry(magick, "Optimise copy", function()
       images.optimise(path)
-    end),
+    end, nil, { icon = ICON.optimise }),
     contextmenu.entry(magick, "Convert copy…", function()
       vim.ui.select(require("images.convert").target_formats(), { prompt = "Convert to:" }, function(format)
         if format then images.convert(format, path) end
       end)
-    end),
+    end, nil, { icon = ICON.convert }),
     contextmenu.entry(true, "Zen view", function()
       images.zen(path)
-    end),
+    end, nil, { icon = ICON.zen }),
     contextmenu.entry(true, "Replace with clipboard image", function()
       images.replace(path)
-    end),
+    end, nil, { icon = ICON.replace }),
     contextmenu.entry(true, "Compare two images…", function()
       -- Searched in the folder of the clicked image, not the working directory.
       if path then
@@ -70,7 +96,7 @@ local function processing_entries(path)
       else
         images.compare()
       end
-    end)
+    end, nil, { icon = ICON.compare })
 end
 
 local M = {}
@@ -120,29 +146,29 @@ function M.items(bufnr)
 
   contextmenu.group(
     out,
-    contextmenu.entry(true, "  Show image under cursor", images.hover, km.show),
-    contextmenu.entry(true, "  Gallery (every image in the buffer)", images.gallery, km.gallery),
-    contextmenu.entry(true, "  Next image", function()
+    contextmenu.entry(true, "Show image under cursor", images.hover, km.show, { icon = ICON.show }),
+    contextmenu.entry(true, "Gallery (every image in the buffer)", images.gallery, km.gallery, { icon = ICON.gallery }),
+    contextmenu.entry(true, "Next image", function()
       images.step(1)
-    end, km.next),
-    contextmenu.entry(true, "  Previous image", function()
+    end, km.next, { icon = ICON.next }),
+    contextmenu.entry(true, "Previous image", function()
       images.step(-1)
-    end, km.prev)
+    end, km.prev, { icon = ICON.prev })
   )
 
   contextmenu.group(
     out,
-    contextmenu.entry(true, "  Paste image from clipboard", function()
+    contextmenu.entry(true, "Paste image from clipboard", function()
       images.paste()
-    end, km.paste),
-    contextmenu.entry(true, "  Take a screenshot", images.screenshot, km.screenshot)
+    end, km.paste, { icon = ICON.paste }),
+    contextmenu.entry(true, "Take a screenshot", images.screenshot, km.screenshot, { icon = ICON.screenshot })
   )
 
   contextmenu.group(
     out,
-    contextmenu.entry(true, "  Show image info", function()
+    contextmenu.entry(true, "Show image info", function()
       images.info()
-    end)
+    end, nil, { icon = ICON.info })
   )
 
   contextmenu.group(out, processing_entries(nil))
@@ -165,10 +191,10 @@ function M.items_for_path(path)
     out,
     contextmenu.entry(true, "Show image", function()
       images.show(path)
-    end),
+    end, nil, { icon = ICON.show }),
     contextmenu.entry(true, "Show image info", function()
       images.info(path)
-    end)
+    end, nil, { icon = ICON.info })
   )
   contextmenu.group(out, processing_entries(path))
   return out
@@ -177,11 +203,11 @@ end
 --- Convenience: the images.nvim entries as a single nested submenu, for hosts
 --- that prefer an "Images ▸" fly-out. Returns nil when there is nothing to
 --- show.
----@param label? string submenu label (default "  Images")
+---@param label? string submenu label (default "Images")
 ---@param bufnr? integer
 ---@return Ui.ContextMenu.Item|nil
 function M.submenu(label, bufnr)
-  return contextmenu.submenu(label or "  Images", M.items(bufnr))
+  return contextmenu.submenu(label or "Images", M.items(bufnr), { icon = ICON.images })
 end
 
 return M
