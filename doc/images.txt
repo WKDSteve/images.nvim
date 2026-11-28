@@ -619,8 +619,8 @@ installed; false disables it even with it installed.
 `deps_popup` (default true) controls the one-off "which CLI tools does this
 plugin want, and why" popup on the first `setup()` after installation, via
 lib.nvim's deps module. `menu.enable` (default true) controls whether
-`images.integrations.menu` returns any right-click entries at all; without
-nvzone/menu installed it is inert either way. `integrations.ui_menu = false`
+`images.integrations.menu` returns any right-click entries at all.
+`integrations.ui_menu = false`
 keeps ui.nvim's right-click menu from composing the fly-out while other hosts
 still get `items()`. `tree` (default true) registers the decorator `orphan` at
 lib.nvim's tree registry: a tree view that reads it (the own tree of

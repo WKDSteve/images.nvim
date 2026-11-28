@@ -16,7 +16,7 @@
 --- <
 --- pickers.nvim consumes precisely this surface (its own
 --- `pickers.integrations.images` is the counterpart), which is the same
---- division of labour `images.integrations.menu` already has with nvzone/menu:
+--- division of labour `images.integrations.menu` already has with a context-menu host:
 --- the host composes, images.nvim supplies. Nothing here is images.nvim-
 --- specific to a host — a foreign picker never has to know about
 --- `images.anchor`, `images.terminal` or the OSC 1337 pitfalls behind them.

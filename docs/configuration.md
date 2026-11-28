@@ -407,7 +407,7 @@ the vault task `images.nvim/sync-subprocess-timeouts`).
 
 | Key | Default | What it does |
 | --- | --- | --- |
-| `enable` | `true` | Whether `images.integrations.menu` returns any entries at all. It contributes right-click entries in the shape [nvzone/menu](https://github.com/nvzone/menu) expects; without that plugin installed it is inert either way |
+| `enable` | `true` | Whether `images.integrations.menu` returns any entries at all. It contributes right-click entries in the context-menu entry shape |
 
 ## integrations
 

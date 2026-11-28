@@ -66,7 +66,7 @@ git config core.hooksPath scripts/hooks         # once per clone
 | `lua/images/` | Display, capture, browsing and processing — the four feature groups |
 | `lua/images/bindings/` | The `:Image` route tree, keymaps and the double-click handler |
 | `lua/images/config/` | Defaults, `paste.dir` resolution, `setup()` validation |
-| `lua/images/integrations/` | Soft-dependency bridges: the picker, nvzone/menu |
+| `lua/images/integrations/` | Soft-dependency bridges: the picker, the context-menu entries |
 | `lua/images/@types/` | Shared type definitions |
 | `lua/images/health.lua` | `:checkhealth images` |
 | `scripts/` | Map generation, the layer check, git hooks |

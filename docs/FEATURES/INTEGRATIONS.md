@@ -16,7 +16,7 @@ tools.
   - [pdfport.nvim, in both directions](#pdfportnvim-in-both-directions)
   - [language.nvim after OCR — an integration with no code in it](#languagenvim-after-ocr--an-integration-with-no-code-in-it)
   - [lib.nvim.deps: missing-tool reporting](#libnvimdeps-missing-tool-reporting)
-  - [Right-click context menu (nvzone/menu)](#right-click-context-menu-nvzonemenu)
+  - [Right-click context menu](#right-click-context-menu)
   - [Health check](#health-check)
 
 ---
@@ -375,11 +375,11 @@ shows what's missing and why, once ever. What each one actually unlocks is in
 
 ---
 
-## Right-click context menu (nvzone/menu)
+## Right-click context menu
 
 `images.integrations.menu` contributes entries — Show image under cursor,
 Gallery, Next/Previous image, Paste from clipboard, Screenshot, Show image
-info — in the shape [nvzone/menu](https://github.com/nvzone/menu) expects,
+info — in the context-menu entry shape,
 gated the same way the keymaps in `images.bindings.keymaps` are:
 `keymaps.filetypes` (default markdown/vimwiki/norg/text) and
 `config.menu.enable`. Mouse interaction is already a first-class idiom

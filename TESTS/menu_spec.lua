@@ -1,4 +1,4 @@
--- TESTS/menu_spec.lua — images.integrations.menu: the nvzone/menu-shaped
+-- TESTS/menu_spec.lua — images.integrations.menu: the context-menu
 -- entry list a host splices into its own right-click menu.
 --
 -- `images.integrations.menu` hard-requires `ui.contextmenu` at module load
@@ -7,7 +7,7 @@
 -- because it is already building a menu with ui.nvim's builders, so that is
 -- a deliberate hard dependency, not a bug (see docs/CONTRIBUTING.md: this is
 -- one of the "soft-dependency bridges" under `integrations/`, soft meaning
--- the *target* — nvzone/menu — not ui.nvim itself).
+-- the *target* — a host menu — not ui.nvim itself).
 --
 -- ui.nvim is deliberately NOT a dependency of the suite (.testing.lua `deps`)
 -- — compare_spec.lua's regression coverage for `:Image compare` depends on
